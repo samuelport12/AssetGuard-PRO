@@ -1,0 +1,9 @@
+{
+  "/api/dashboard/stats/route": "app/api/dashboard/stats/route.js",
+  "/api/products/route": "app/api/products/route.js",
+  "/api/departments/route": "app/api/departments/route.js",
+  "/api/dashboard/movements/route": "app/api/dashboard/movements/route.js",
+  "/api/reports/consumption/route": "app/api/reports/consumption/route.js",
+  "/api/products/barcode/[barcode]/route": "app/api/products/barcode/[barcode]/route.js",
+  "/api/products/[id]/stock/route": "app/api/products/[id]/stock/route.js"
+}

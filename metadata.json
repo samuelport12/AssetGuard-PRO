@@ -1,0 +1,5 @@
+{
+  "name": "AssetGuard Pro",
+  "description": "A comprehensive Warehouse Management and Asset Control system featuring role-based authentication, barcode scanner integration, asset lifecycle tracking, and real-time audit logging.",
+  "requestFramePermissions": []
+}

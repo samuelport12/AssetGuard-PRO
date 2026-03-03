@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  OPERATOR
+}
+
+enum AssetStatus {
+  IN_USE
+  MAINTENANCE
+  DISPOSED
+  AVAILABLE
+}
+
+enum LogAction {
+  LOGIN
+  CREATE
+  UPDATE
+  DELETE
+  MOVEMENT_IN
+  MOVEMENT_OUT
+}
+
+enum TargetType {
+  PRODUCT
+  ASSET
+  SYSTEM
+  USER
+  DEPARTMENT
+}
+
+enum MovementType {
+  ENTRADA
+  SAIDA
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  fullName  String
+  role      Role     @default(OPERATOR)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  auditLogs AuditLog[]
+}
+
+model Product {
+  id             String          @id @default(cuid())
+  name           String
+  barcode        String          @unique
+  quantity       Int             @default(0)
+  minStock       Int             @default(0)
+  location       String
+  category       String
+  unitValue      Float
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  stockMovements StockMovement[]
+}
+
+model StockMovement {
+  id           String       @id @default(cuid())
+  productId    String
+  type         MovementType
+  quantity     Int
+  unitCost     Float?
+  reason       String
+  departmentId String?
+  userId       String
+  userName     String
+  createdAt    DateTime     @default(now())
+
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  department Department? @relation(fields: [departmentId], references: [id])
+}
+
+model Asset {
+  id              String      @id @default(cuid())
+  assetTag        String      @unique
+  serialNumber    String      @unique
+  name            String
+  description     String
+  acquisitionDate DateTime
+  purchaseValue   Float
+  location        String
+  status          AssetStatus @default(AVAILABLE)
+  usefulLifeYears Int
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model AuditLog {
+  id         String     @id @default(cuid())
+  timestamp  DateTime   @default(now())
+  userId     String
+  userName   String
+  action     LogAction
+  targetType TargetType
+  targetId   String?
+  details    String
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Department {
+  id             String           @id @default(cuid())
+  name           String
+  costCenterCode String           @unique
+  isActive       Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  stockMovements StockMovement[]
+}
