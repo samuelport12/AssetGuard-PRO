@@ -226,7 +226,7 @@ const Inventory: React.FC = () => {
       location: form.location.trim(),
       quantity: Number(form.quantity),
       minStock: Number(form.minStock),
-      unitValue: Number(form.unitValue),
+      unitValue: editingProduct ? editingProduct.unitValue : Number(form.unitValue),
     };
 
     try {
@@ -377,7 +377,7 @@ const Inventory: React.FC = () => {
                     <th className="px-6 py-4">Categoria</th>
                     <th className="px-6 py-4">Localização</th>
                     <th className="px-6 py-4 text-center">Qtd Atual</th>
-                    <th className="px-6 py-4 text-right">Valor Unit.</th>
+                    <th className="px-6 py-4 text-right">Custo Médio</th>
                     <th className="px-6 py-4">Status</th>
                     <th className="px-6 py-4 text-center">Ações</th>
                   </tr>
@@ -655,7 +655,9 @@ const Inventory: React.FC = () => {
                   {formErrors.minStock && <p className="mt-1 text-xs text-red-600">{formErrors.minStock}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Valor Unit. *</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                    {isEditing ? 'Custo Médio' : 'Valor Unit. *'}
+                  </label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">R$</span>
                     <input
@@ -665,13 +667,18 @@ const Inventory: React.FC = () => {
                       placeholder="0.00"
                       value={form.unitValue}
                       onChange={(e) => updateField('unitValue', e.target.value)}
-                      disabled={submitting || submitSuccess}
+                      disabled={submitting || submitSuccess || isEditing}
                       className={`w-full pl-10 pr-4 py-2.5 border rounded-lg outline-none transition-all text-sm disabled:opacity-60 disabled:cursor-not-allowed ${formErrors.unitValue
                         ? 'border-red-300 bg-red-50 focus:ring-2 focus:ring-red-500'
-                        : 'border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                        : isEditing
+                          ? 'border-slate-200 bg-slate-100 text-slate-500'
+                          : 'border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                         }`}
                     />
                   </div>
+                  {isEditing && (
+                    <p className="mt-1 text-xs text-slate-400">Calculado automaticamente via movimentações de entrada</p>
+                  )}
                   {formErrors.unitValue && <p className="mt-1 text-xs text-red-600">{formErrors.unitValue}</p>}
                 </div>
               </div>

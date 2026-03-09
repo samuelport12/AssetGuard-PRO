@@ -1,4 +1,4 @@
-import { Asset, AuditLog, Department, Product, User, DashboardStats } from "../types";
+import { Asset, AuditLog, Department, Product, User, DashboardStats, StockMovement, MovementsSummary } from "../types";
 
 const API_BASE = '/api';
 
@@ -84,13 +84,23 @@ class DataService {
     return handleResponse<Product>(response);
   }
 
-  async updateStock(productId: string, quantityDelta: number, user: User, reason: string, departmentId?: string): Promise<void> {
+  async updateStock(
+    productId: string,
+    params: {
+      type: 'ENTRADA' | 'SAIDA';
+      quantity: number;
+      unitCost?: number;
+      reason: string;
+      departmentId?: string;
+      movementDate?: string;
+    }
+  ): Promise<{ product: Product; movement: { id: string; type: string; quantity: number; unitCost: number } }> {
     const response = await fetch(`${API_BASE}/products/${productId}/stock`, {
       method: 'PUT',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ quantityDelta, reason, departmentId }),
+      body: JSON.stringify(params),
     });
-    await handleResponse(response);
+    return handleResponse(response);
   }
 
   // --- Fixed Assets ---
@@ -282,10 +292,48 @@ class DataService {
     return handleResponse<Department>(response);
   }
 
+  // --- Stock Movements ---
+
+  async getStockMovements(params?: {
+    page?: number;
+    limit?: number;
+    startDate?: string;
+    endDate?: string;
+    productId?: string;
+    type?: string;
+    supplierId?: string;
+    search?: string;
+    barcode?: string;
+  }): Promise<{
+    movements: StockMovement[];
+    total: number;
+    page: number;
+    totalPages: number;
+    limit: number;
+    summary: MovementsSummary;
+    filterOptions: { suppliers: string[] };
+  }> {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.set('page', String(params.page));
+    if (params?.limit) qs.set('limit', String(params.limit));
+    if (params?.startDate) qs.set('startDate', params.startDate);
+    if (params?.endDate) qs.set('endDate', params.endDate);
+    if (params?.productId) qs.set('productId', params.productId);
+    if (params?.type) qs.set('type', params.type);
+    if (params?.supplierId) qs.set('supplierId', params.supplierId);
+    if (params?.search) qs.set('search', params.search);
+    if (params?.barcode) qs.set('barcode', params.barcode);
+    const query = qs.toString();
+    const response = await fetch(`${API_BASE}/movements${query ? `?${query}` : ''}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  }
+
   // --- Reports ---
 
-  async getConsumptionReport(startDate?: string, endDate?: string): Promise<{
-    byDepartment: { departmentId: string; departmentName: string; totalEntradas: number; totalSaidas: number; totalEntryCost: number }[];
+  async getConsumptionReport(startDate?: string, endDate?: string, departmentIds?: string[]): Promise<{
+    byDepartment: { departmentId: string; departmentName: string; totalEntradas: number; totalSaidas: number; totalExitCost: number }[];
     topConsumed: { productId: string; productName: string; totalSaidas: number }[];
     movements: {
       date: string;
@@ -297,10 +345,12 @@ class DataService {
       userName: string;
       reason: string;
     }[];
+    departments: { id: string; name: string }[];
   }> {
     const qs = new URLSearchParams();
     if (startDate) qs.set('startDate', startDate);
     if (endDate) qs.set('endDate', endDate);
+    if (departmentIds && departmentIds.length > 0) qs.set('departmentIds', departmentIds.join(','));
     const query = qs.toString();
     const response = await fetch(`${API_BASE}/reports/consumption${query ? `?${query}` : ''}`, {
       headers: getAuthHeaders(),

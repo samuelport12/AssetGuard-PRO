@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { dataService } from '../services/DataService';
 import { useAuth } from '../contexts/AuthContext';
 import { Product, Department } from '../types';
-import { ScanBarcode, ArrowRight, CheckCircle, XCircle, PackagePlus, PackageMinus, AlertTriangle } from 'lucide-react';
+import { ScanBarcode, ArrowRight, CheckCircle, XCircle, PackagePlus, PackageMinus, AlertTriangle, DollarSign } from 'lucide-react';
 
 const Scanner: React.FC = () => {
   const { user } = useAuth();
@@ -10,6 +10,8 @@ const Scanner: React.FC = () => {
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
   const [mode, setMode] = useState<'IN' | 'OUT'>('OUT');
   const [quantity, setQuantity] = useState<number>(1);
+  const [unitCost, setUnitCost] = useState<string>('');
+  const [movementDate, setMovementDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [processing, setProcessing] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -22,15 +24,15 @@ const Scanner: React.FC = () => {
   useEffect(() => {
     dataService.getDepartments().then((deps) => {
       setDepartments(deps.filter((d) => d.isActive));
-    }).catch(() => {});
+    }).catch(() => { });
   }, []);
 
   // Auto-focus barcode input logic
   useEffect(() => {
     const focusInterval = setInterval(() => {
       if (document.activeElement?.tagName !== 'INPUT' &&
-          document.activeElement?.tagName !== 'SELECT' &&
-          !processing) {
+        document.activeElement?.tagName !== 'SELECT' &&
+        !processing) {
         barcodeInputRef.current?.focus();
       }
     }, 2000);
@@ -51,6 +53,8 @@ const Scanner: React.FC = () => {
         setCurrentProduct(product);
         setBarcode('');
         setSelectedDepartmentId('');
+        setUnitCost('');
+        setMovementDate(new Date().toISOString().split('T')[0]);
         setTimeout(() => quantityInputRef.current?.focus(), 100);
         setMessage(null);
       } else {
@@ -67,19 +71,42 @@ const Scanner: React.FC = () => {
 
   const handleTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentProduct || !user || !selectedDepartmentId) return;
+    if (!currentProduct || !user) return;
+
+    // Validate SAIDA requires department
+    if (mode === 'OUT' && !selectedDepartmentId) return;
+
+    // Validate ENTRADA requires unitCost
+    const parsedUnitCost = parseFloat(unitCost);
+    if (mode === 'IN' && (!parsedUnitCost || parsedUnitCost <= 0)) {
+      setMessage({ type: 'error', text: 'Informe o custo unitário para ENTRADA.' });
+      return;
+    }
 
     setProcessing(true);
     try {
-      const delta = mode === 'IN' ? quantity : -quantity;
-      await dataService.updateStock(currentProduct.id, delta, user, 'Scanner Rápido', selectedDepartmentId);
+      const result = await dataService.updateStock(currentProduct.id, {
+        type: mode === 'IN' ? 'ENTRADA' : 'SAIDA',
+        quantity,
+        ...(mode === 'IN' ? { unitCost: parsedUnitCost } : {}),
+        reason: 'Scanner Rápido',
+        ...(selectedDepartmentId ? { departmentId: selectedDepartmentId } : {}),
+        movementDate: movementDate || undefined,
+      });
+
+      const avgCostInfo = mode === 'IN'
+        ? ` | Novo custo médio: R$ ${result.product.unitValue.toFixed(2)}`
+        : ` | Custo unit. saída: R$ ${result.movement.unitCost.toFixed(2)}`;
+
       setMessage({
         type: 'success',
-        text: `Sucesso! ${mode === 'IN' ? 'Entrada' : 'Saída'} de ${quantity}x ${currentProduct.name}`
+        text: `Sucesso! ${mode === 'IN' ? 'Entrada' : 'Saída'} de ${quantity}x ${currentProduct.name}${avgCostInfo} | Data: ${movementDate.split('-').reverse().join('/') || 'Hoje'} | Estoque: ${result.product.quantity}`
       });
       setCurrentProduct(null);
       setQuantity(1);
       setSelectedDepartmentId('');
+      setUnitCost('');
+      setMovementDate(new Date().toISOString().split('T')[0]);
       barcodeInputRef.current?.focus();
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message });
@@ -88,8 +115,14 @@ const Scanner: React.FC = () => {
     }
   };
 
+  const formatCurrency = (value: number) =>
+    value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
   const isLowStock = currentProduct ? currentProduct.quantity <= currentProduct.minStock : false;
-  const canConfirm = !processing && !!selectedDepartmentId;
+  const parsedCost = parseFloat(unitCost);
+  const canConfirm = !processing &&
+    (mode === 'OUT' ? !!selectedDepartmentId : (!!parsedCost && parsedCost > 0)) &&
+    quantity > 0;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -101,7 +134,7 @@ const Scanner: React.FC = () => {
       {/* Mode Switcher */}
       <div className="flex bg-slate-200 p-1 rounded-xl">
         <button
-          onClick={() => { setMode('OUT'); barcodeInputRef.current?.focus(); }}
+          onClick={() => { setMode('OUT'); setUnitCost(''); barcodeInputRef.current?.focus(); }}
           className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-bold transition-all ${mode === 'OUT' ? 'bg-red-500 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
         >
           <PackageMinus size={20} />
@@ -164,27 +197,98 @@ const Scanner: React.FC = () => {
                   <span>Estoque mínimo: {currentProduct.minStock} un.</span>
                   {isLowStock && <span className="ml-1 px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-bold uppercase">Abaixo do mínimo</span>}
                 </div>
+                {/* Current avg cost */}
+                <div className="mt-2 flex items-center gap-2 text-sm text-slate-500">
+                  <DollarSign size={14} />
+                  <span>Custo médio atual: <strong className="text-slate-700">{formatCurrency(currentProduct.unitValue)}</strong></span>
+                </div>
               </div>
 
-              {/* Department dropdown */}
+              {/* Movement Date input */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  {mode === 'OUT' ? 'Setor de Destino' : 'Setor de Origem'} <span className="text-red-500">*</span>
+                  Data da Movimentação
                 </label>
-                <select
-                  value={selectedDepartmentId}
-                  onChange={(e) => setSelectedDepartmentId(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-slate-300 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none bg-white text-slate-800"
-                >
-                  <option value="">Selecione o setor...</option>
-                  {departments.map((d) => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
-                {departments.length === 0 && (
-                  <p className="text-xs text-amber-600 mt-1">Nenhum setor cadastrado. Cadastre setores em Configurações.</p>
-                )}
+                <input
+                  type="date"
+                  value={movementDate}
+                  onChange={(e) => setMovementDate(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-slate-300 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none text-slate-800 font-medium bg-white"
+                />
               </div>
+
+              {/* Department dropdown — required for SAIDA */}
+              {mode === 'OUT' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Setor de Destino <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={selectedDepartmentId}
+                    onChange={(e) => setSelectedDepartmentId(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-slate-300 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none bg-white text-slate-800"
+                  >
+                    <option value="">Selecione o setor...</option>
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                  {departments.length === 0 && (
+                    <p className="text-xs text-amber-600 mt-1">Nenhum setor cadastrado. Cadastre setores em Configurações.</p>
+                  )}
+                </div>
+              )}
+
+              {/* Unit cost field — required for ENTRADA */}
+              {mode === 'IN' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Custo Unitário (R$) <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 font-bold">R$</span>
+                    <input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={unitCost}
+                      onChange={(e) => setUnitCost(e.target.value)}
+                      className="w-full pl-14 pr-4 py-3 text-lg font-bold border-2 border-slate-300 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20 outline-none"
+                      placeholder="0,00"
+                    />
+                  </div>
+                  {parsedCost > 0 && currentProduct.quantity > 0 && (
+                    <p className="text-xs text-emerald-600 mt-2 flex items-center gap-1">
+                      <DollarSign size={12} />
+                      Novo custo médio estimado: <strong>
+                        {formatCurrency(
+                          (currentProduct.quantity * currentProduct.unitValue + quantity * parsedCost)
+                          / (currentProduct.quantity + quantity)
+                        )}
+                      </strong>
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* SAIDA readonly cost info */}
+              {mode === 'OUT' && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                  <div className="flex items-center gap-2 text-sm text-blue-700 mb-1">
+                    <DollarSign size={16} />
+                    <span className="font-medium">Custo unitário de saída</span>
+                  </div>
+                  <p className="text-xl font-bold text-blue-800">
+                    {formatCurrency(currentProduct.unitValue)}
+                  </p>
+                  {quantity > 0 && (
+                    <p className="text-sm text-blue-600 mt-1">
+                      Custo total da saída: <strong>{formatCurrency(quantity * currentProduct.unitValue)}</strong>
+                      <span className="text-blue-400 ml-1">({quantity} × {formatCurrency(currentProduct.unitValue)})</span>
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Quantity + confirm */}
               <div>
@@ -211,7 +315,7 @@ const Scanner: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => { setCurrentProduct(null); setBarcode(''); setSelectedDepartmentId(''); }}
+                onClick={() => { setCurrentProduct(null); setBarcode(''); setSelectedDepartmentId(''); setUnitCost(''); }}
                 className="w-full text-slate-500 hover:text-slate-800 text-sm font-medium py-2"
               >
                 Cancelar Operação (Esc)

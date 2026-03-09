@@ -12,36 +12,46 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const startDate = searchParams.get('startDate');
         const endDate = searchParams.get('endDate');
+        // departmentIds: comma-separated list of IDs, e.g. "id1,id2,id3"
+        const departmentIdsParam = searchParams.get('departmentIds');
+        const departmentIds = departmentIdsParam
+            ? departmentIdsParam.split(',').map(s => s.trim()).filter(Boolean)
+            : [];
 
-        const dateFilter: any = {};
+        // Build UTC date range from YYYY-MM-DD strings.
+        const dateFilter: { gte?: Date; lte?: Date } = {};
         if (startDate) {
-            dateFilter.gte = new Date(startDate);
+            dateFilter.gte = new Date(startDate + 'T00:00:00.000Z');
         }
         if (endDate) {
-            const end = new Date(endDate);
-            end.setHours(23, 59, 59, 999);
-            dateFilter.lte = end;
+            dateFilter.lte = new Date(endDate + 'T23:59:59.999Z');
         }
 
+        // Filter by createdAt (always populated) instead of movementDate
         const whereClause: any = {};
         if (startDate || endDate) {
             whereClause.createdAt = dateFilter;
         }
+        // Filter by departments if provided
+        if (departmentIds.length > 0) {
+            whereClause.departmentId = { in: departmentIds };
+        }
+
+        // Fetch all departments for name lookup + to return as filter options
+        const departments = await prisma.department.findMany({
+            select: { id: true, name: true },
+            orderBy: { name: 'asc' },
+        });
+        const deptNameMap = new Map(departments.map(d => [d.id, d.name]));
 
         // Fetch all movements in the period with product info
         const movements = await prisma.stockMovement.findMany({
             where: whereClause,
-            orderBy: { createdAt: 'desc' },
+            orderBy: { movementDate: 'desc' },
             include: {
                 product: { select: { name: true, barcode: true } },
             },
         });
-
-        // Fetch all departments for name lookup
-        const departments = await prisma.department.findMany({
-            select: { id: true, name: true },
-        });
-        const deptNameMap = new Map(departments.map(d => [d.id, d.name]));
 
         // Aggregate by department
         const departmentMap = new Map<string, {
@@ -49,7 +59,7 @@ export async function GET(request: NextRequest) {
             departmentName: string;
             totalEntradas: number;
             totalSaidas: number;
-            totalEntryCost: number;
+            totalExitCost: number;
         }>();
 
         const NO_DEPT = '__SEM_SETOR__';
@@ -62,14 +72,14 @@ export async function GET(request: NextRequest) {
                 departmentName: deptName,
                 totalEntradas: 0,
                 totalSaidas: 0,
-                totalEntryCost: 0,
+                totalExitCost: 0,
             };
 
             if (m.type === 'ENTRADA') {
                 existing.totalEntradas += m.quantity;
-                existing.totalEntryCost += (m.unitCost ?? 0) * m.quantity;
             } else {
                 existing.totalSaidas += m.quantity;
+                existing.totalExitCost += (m.unitCost ?? 0) * m.quantity;
             }
             departmentMap.set(deptId, existing);
         }
@@ -102,7 +112,7 @@ export async function GET(request: NextRequest) {
 
         // Format movements for response (Excel export)
         const formattedMovements = movements.map((m) => ({
-            date: m.createdAt.toISOString(),
+            date: (m.movementDate ?? m.createdAt).toISOString(),
             productName: m.product.name,
             barcode: m.product.barcode,
             quantity: m.quantity,
@@ -116,6 +126,7 @@ export async function GET(request: NextRequest) {
             byDepartment,
             topConsumed,
             movements: formattedMovements,
+            departments: departments.map(d => ({ id: d.id, name: d.name })),
         });
     } catch (error) {
         console.error('Consumption report error:', error);

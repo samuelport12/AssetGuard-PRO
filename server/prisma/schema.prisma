@@ -72,12 +72,13 @@ model StockMovement {
   productId    String
   type         MovementType
   quantity     Int
-  unitCost     Float?
+  unitCost     Float
   reason       String
   departmentId String?
   userId       String
   userName     String
   createdAt    DateTime     @default(now())
+  movementDate DateTime?    @default(now())
 
   product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
   department Department? @relation(fields: [departmentId], references: [id])

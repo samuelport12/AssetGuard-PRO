@@ -14,9 +14,9 @@ export async function PUT(
     try {
         const { id } = params;
         const body = await request.json();
-        const { name, barcode, quantity, minStock, location, category, unitValue } = body;
+        const { name, barcode, quantity, minStock, location, category } = body;
 
-        if (!name || !barcode || quantity == null || minStock == null || !location || !category || unitValue == null) {
+        if (!name || !barcode || quantity == null || minStock == null || !location || !category) {
             return NextResponse.json({ error: 'Campos obrigatórios não preenchidos' }, { status: 400 });
         }
 
@@ -33,9 +33,10 @@ export async function PUT(
             return NextResponse.json({ error: 'Já existe outro produto com este código de barras' }, { status: 409 });
         }
 
+        // unitValue is NOT accepted on update — it is only changed via stock movements
         const product = await prisma.product.update({
             where: { id },
-            data: { name, barcode, quantity, minStock, location, category, unitValue },
+            data: { name, barcode, quantity, minStock, location, category },
         });
 
         // Log the update

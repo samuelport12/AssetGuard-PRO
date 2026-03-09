@@ -1,8 +1,8 @@
-// File: C:\Users\win11\Desktop\PROJETO\assetguard-pro\server\app\api\products\[id]\stock\route.ts
-import * as entry from '../../../../../../../app/api/products/[id]/stock/route.js'
+// File: C:\Users\win11\Desktop\PROJETO\assetguard-pro\server\app\api\auth\login\route.ts
+import * as entry from '../../../../../../app/api/auth/login/route.js'
 import type { NextRequest } from 'next/server.js'
 
-type TEntry = typeof import('../../../../../../../app/api/products/[id]/stock/route.js')
+type TEntry = typeof import('../../../../../../app/api/auth/login/route.js')
 
 // Check that the entry is a valid entry
 checkFields<Diff<{

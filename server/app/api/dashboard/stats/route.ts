@@ -9,41 +9,17 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        const [products, entryMovements, assets] = await Promise.all([
+        const [products, assets] = await Promise.all([
             prisma.product.findMany(),
-            prisma.stockMovement.findMany({
-                where: { type: 'ENTRADA' },
-                select: { productId: true, quantity: true, unitCost: true },
-            }),
             prisma.asset.findMany(),
         ]);
 
-        // Build a per-product weighted average cost from historical ENTRADA records.
-        // unitCost is locked at the time of each entry and is never affected by
-        // subsequent price updates on the product.
-        const costMap = new Map<string, { totalCost: number; totalQty: number }>();
-        for (const m of entryMovements) {
-            const current = costMap.get(m.productId) ?? { totalCost: 0, totalQty: 0 };
-            costMap.set(m.productId, {
-                totalCost: current.totalCost + (m.unitCost ?? 0) * m.quantity,
-                totalQty: current.totalQty + m.quantity,
-            });
-        }
-
-        const totalStockValue = products.reduce((acc, p) => {
-            if (p.quantity === 0) return acc;
-
-            const costs = costMap.get(p.id);
-            if (!costs || costs.totalQty === 0) {
-                console.warn(
-                    `[dashboard/stats] Product "${p.name}" (${p.id}) has quantity=${p.quantity} but no ENTRADA movements. Its value is excluded from totalStockValue.`
-                );
-                return acc;
-            }
-
-            const unitCost = costs.totalCost / costs.totalQty;
-            return acc + p.quantity * unitCost;
-        }, 0);
+        // Since product.unitValue now always reflects the true weighted average
+        // cost (updated on every ENTRADA), we can compute total stock value directly.
+        const totalStockValue = products.reduce(
+            (acc, p) => acc + p.quantity * p.unitValue,
+            0
+        );
 
         const lowStockCount = products.filter(
             (p) => p.quantity <= p.minStock

@@ -13,7 +13,8 @@ import {
   PanelLeftOpen,
   Users,
   Building2,
-  FileText
+  FileText,
+  ArrowLeftRight
 } from 'lucide-react';
 
 const SIDEBAR_KEY = 'assetguard_sidebar_collapsed';
@@ -135,6 +136,11 @@ const Layout: React.FC = () => {
             <Package size={20} className="flex-shrink-0" />
             <span style={txtStyle}>Almoxarifado</span>
             <Tooltip label="Almoxarifado" />
+          </NavLink>
+          <NavLink to="/movements" className={navClass}>
+            <ArrowLeftRight size={20} className="flex-shrink-0" />
+            <span style={txtStyle}>Movimentações</span>
+            <Tooltip label="Movimentações" />
           </NavLink>
           <NavLink to="/assets" className={navClass}>
             <Monitor size={20} className="flex-shrink-0" />

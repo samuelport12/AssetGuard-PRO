@@ -63,3 +63,25 @@ export interface DashboardStats {
   activeAssetsCount: number;
   totalProducts: number;
 }
+
+export interface StockMovement {
+  id: string;
+  productId: string;
+  productName: string;
+  type: 'ENTRADA' | 'SAIDA';
+  quantity: number;
+  unitCost: number;
+  reason: string;
+  departmentId?: string | null;
+  departmentName?: string | null;
+  userId: string;
+  userName: string;
+  createdAt: string;
+}
+
+export interface MovementsSummary {
+  totalEntradas: number;
+  totalSaidas: number;
+  totalSpent: number;
+  avgUnitCost: number;
+}

@@ -11,6 +11,7 @@ import Audit from './pages/Audit';
 import UsersPage from './pages/Users';
 import DepartmentsPage from './pages/Departments';
 import ReportsPage from './pages/Reports';
+import MovementsPage from './pages/Movements';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode; requireAdmin?: boolean }> = ({ children, requireAdmin }) => {
@@ -37,6 +38,7 @@ const AppRoutes = () => {
         <Route path="inventory" element={<Inventory />} />
         <Route path="assets" element={<Assets />} />
         <Route path="scanner" element={<Scanner />} />
+        <Route path="movements" element={<MovementsPage />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route path="users" element={
           <ProtectedRoute requireAdmin>
