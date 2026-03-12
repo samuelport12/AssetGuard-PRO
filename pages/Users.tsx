@@ -159,14 +159,21 @@ const Users: React.FC = () => {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center animate-in">
                 <div>
-                    <h2 className="text-2xl font-bold text-slate-800">Gerenciamento de Usuários</h2>
-                    <p className="text-slate-500 text-sm">Controle de acesso e permissões do sistema</p>
+                    <h2 className="text-2xl font-bold" style={{ color: '#0f172a', fontFamily: "'Outfit', sans-serif" }}>Gerenciamento de Usuários</h2>
+                    <p style={{ color: '#94a3b8' }} className="text-sm">Controle de acesso e permissões do sistema</p>
                 </div>
                 <button
                     onClick={openCreateModal}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium shadow-lg shadow-blue-600/20 transition-all duration-200 hover:shadow-blue-600/30"
+                    className="btn-premium flex items-center gap-2 px-5 py-2.5 text-white text-sm font-semibold"
+                    style={{
+                        background: 'linear-gradient(135deg, #4F6BFF 0%, #3b52db 100%)',
+                        borderRadius: 12,
+                        border: 'none',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 16px rgba(79, 107, 255, 0.3)',
+                    }}
                 >
                     <UserPlus size={16} />
                     Novo Usuário
@@ -174,11 +181,11 @@ const Users: React.FC = () => {
             </div>
 
             {/* Users Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="glass-card animate-in overflow-hidden" style={{ animationDelay: '60ms' }}>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
-                            <tr className="bg-slate-50 text-slate-500 text-xs uppercase font-semibold border-b border-slate-200">
+                            <tr style={{ background: 'rgba(0,0,0,0.015)' }} className="text-xs uppercase font-semibold">
                                 <th className="px-6 py-4">Nome Completo</th>
                                 <th className="px-6 py-4">Username</th>
                                 <th className="px-6 py-4">Perfil</th>
@@ -189,10 +196,10 @@ const Users: React.FC = () => {
                         </thead>
                         <tbody className="divide-y divide-slate-200">
                             {users.map((u) => (
-                                <tr key={u.id} className="hover:bg-slate-50 transition-colors">
+                                <tr key={u.id} className="table-row-hover">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
-                                            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm ${u.role === 'ADMIN' ? 'bg-violet-500' : 'bg-sky-500'}`}>
+                                            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm" style={{ background: u.role === 'ADMIN' ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)' : 'linear-gradient(135deg, #4F6BFF, #3b52db)' }}>
                                                 {u.fullName.charAt(0).toUpperCase()}
                                             </div>
                                             <span className="text-sm font-medium text-slate-900">{u.fullName}</span>
@@ -201,12 +208,12 @@ const Users: React.FC = () => {
                                     <td className="px-6 py-4 text-sm text-slate-600 font-mono">{u.username}</td>
                                     <td className="px-6 py-4">
                                         {u.role === 'ADMIN' ? (
-                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-violet-50 text-violet-700 border border-violet-200">
+                                            <span className="badge-pill" style={{ background: 'rgba(139, 92, 246, 0.08)', color: '#7c3aed', border: '1px solid rgba(139, 92, 246, 0.15)' }}>
                                                 <ShieldCheck size={12} />
                                                 Administrador
                                             </span>
                                         ) : (
-                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                                            <span className="badge-pill" style={{ background: 'rgba(79, 107, 255, 0.08)', color: '#4F6BFF', border: '1px solid rgba(79, 107, 255, 0.15)' }}>
                                                 <Wrench size={12} />
                                                 Operador
                                             </span>
@@ -214,13 +221,13 @@ const Users: React.FC = () => {
                                     </td>
                                     <td className="px-6 py-4">
                                         {u.isActive ? (
-                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                            <span className="badge-pill" style={{ background: 'rgba(16, 185, 129, 0.08)', color: '#059669', border: '1px solid rgba(16, 185, 129, 0.15)' }}>
+                                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#10b981', display: 'inline-block' }}></span>
                                                 Ativo
                                             </span>
                                         ) : (
-                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-200">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                            <span className="badge-pill" style={{ background: 'rgba(239, 68, 68, 0.08)', color: '#dc2626', border: '1px solid rgba(239, 68, 68, 0.15)' }}>
+                                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#ef4444', display: 'inline-block' }}></span>
                                                 Inativo
                                             </span>
                                         )}
@@ -268,7 +275,7 @@ const Users: React.FC = () => {
             {/* Modal */}
             {modalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center">
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={closeModal}></div>
+                    <div className="absolute inset-0 modal-backdrop" onClick={closeModal}></div>
                     <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-in fade-in zoom-in">
                         {/* Modal Header */}
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">

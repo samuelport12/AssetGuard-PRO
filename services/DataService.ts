@@ -210,7 +210,7 @@ class DataService {
     return handleResponse<DashboardStats>(response);
   }
 
-  async getMovements(startDate?: string, endDate?: string): Promise<{ date: string; entradas: number; saidas: number }[]> {
+  async getMovements(startDate?: string, endDate?: string): Promise<{ date: string; entradas: number; saidas: number; valorEntradas: number; valorSaidas: number }[]> {
     const params = new URLSearchParams();
     if (startDate) params.set('startDate', startDate);
     if (endDate) params.set('endDate', endDate);
@@ -219,7 +219,7 @@ class DataService {
       headers: getAuthHeaders(),
       cache: 'no-store',
     });
-    return handleResponse<{ date: string; entradas: number; saidas: number }[]>(response);
+    return handleResponse<{ date: string; entradas: number; saidas: number; valorEntradas: number; valorSaidas: number }[]>(response);
   }
 
   // --- Users ---

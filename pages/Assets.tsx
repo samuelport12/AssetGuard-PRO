@@ -3,6 +3,7 @@ import { dataService } from '../services/DataService';
 import { Asset, AssetStatus } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useDebounce } from '../hooks/useDebounce';
+import BarcodeField from '../components/BarcodeField';
 import { Search, Tag, Settings, Monitor, Trash2, X, Loader2, CheckCircle, AlertTriangle, Plus, Pencil, MapPin, Filter, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 interface AssetForm {
@@ -329,6 +330,7 @@ const Assets: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold text-slate-800">Controle Patrimonial (Ativos Fixos)</h2>
         <button
+          type="button"
           onClick={openCreateModal}
           className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
         >
@@ -379,6 +381,7 @@ const Assets: React.FC = () => {
               { value: 'DISPOSED', label: 'Baixado', count: statusCounts['DISPOSED'] || 0 },
             ].map(opt => (
               <button
+                type="button"
                 key={opt.value}
                 onClick={() => setSelectedStatus(opt.value === selectedStatus ? '' : opt.value)}
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${selectedStatus === opt.value
@@ -454,6 +457,7 @@ const Assets: React.FC = () => {
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-center gap-1">
                           <button
+                            type="button"
                             onClick={() => openEditModal(asset)}
                             title="Editar ativo"
                             className="p-2 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-all"
@@ -461,6 +465,7 @@ const Assets: React.FC = () => {
                             <Pencil size={16} />
                           </button>
                           <button
+                            type="button"
                             onClick={() => openDeleteConfirm(asset)}
                             title="Excluir ativo"
                             className="p-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-all"
@@ -488,17 +493,17 @@ const Assets: React.FC = () => {
                   Página <span className="font-semibold text-slate-700">{page}</span> de <span className="font-semibold text-slate-700">{totalPages}</span>
                 </p>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => goToPage(1)} disabled={page === 1} className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Primeira página"><ChevronsLeft size={16} /></button>
-                  <button onClick={() => goToPage(page - 1)} disabled={page === 1} className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Página anterior"><ChevronLeft size={16} /></button>
+                  <button type="button" onClick={() => goToPage(1)} disabled={page === 1} className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Primeira página"><ChevronsLeft size={16} /></button>
+                  <button type="button" onClick={() => goToPage(page - 1)} disabled={page === 1} className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Página anterior"><ChevronLeft size={16} /></button>
                   {getPageNumbers().map((p, i) =>
                     p === '...' ? (
                       <span key={`dots-${i}`} className="px-2 text-slate-400 text-sm">…</span>
                     ) : (
-                      <button key={p} onClick={() => goToPage(p)} className={`min-w-[36px] h-9 rounded-lg text-sm font-medium transition-all ${p === page ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/20' : 'text-slate-600 hover:bg-slate-200'}`}>{p}</button>
+                      <button type="button" key={p} onClick={() => goToPage(p)} className={`min-w-[36px] h-9 rounded-lg text-sm font-medium transition-all ${p === page ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/20' : 'text-slate-600 hover:bg-slate-200'}`}>{p}</button>
                     )
                   )}
-                  <button onClick={() => goToPage(page + 1)} disabled={page === totalPages} className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Próxima página"><ChevronRight size={16} /></button>
-                  <button onClick={() => goToPage(totalPages)} disabled={page === totalPages} className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Última página"><ChevronsRight size={16} /></button>
+                  <button type="button" onClick={() => goToPage(page + 1)} disabled={page === totalPages} className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Próxima página"><ChevronRight size={16} /></button>
+                  <button type="button" onClick={() => goToPage(totalPages)} disabled={page === totalPages} className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Última página"><ChevronsRight size={16} /></button>
                 </div>
               </div>
             )}
@@ -509,15 +514,15 @@ const Assets: React.FC = () => {
       {/* ===== CREATE / EDIT ASSET MODAL ===== */}
       {showModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-start justify-center p-4 sm:pt-12 overflow-y-auto"
           onClick={handleBackdropClick}
           style={{ animation: 'fadeIn 0.2s ease-out' }}
         >
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="fixed inset-0 modal-backdrop" />
 
           <div
             ref={modalRef}
-            className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
+            className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto flex-shrink-0"
             style={{ animation: 'slideUp 0.3s ease-out' }}
           >
             {/* Header */}
@@ -535,6 +540,7 @@ const Assets: React.FC = () => {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={closeModal}
                 disabled={submitting}
                 className="p-1.5 rounded-lg hover:bg-white/20 transition-colors text-white disabled:opacity-50"
@@ -564,25 +570,21 @@ const Assets: React.FC = () => {
             )}
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
-              {/* AssetTag + SerialNumber */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Plaqueta (Tag) *</label>
-                  <input
-                    ref={firstInputRef}
-                    type="text"
-                    placeholder="Ex: PAT-001025"
-                    value={form.assetTag}
-                    onChange={(e) => updateField('assetTag', e.target.value)}
-                    disabled={submitting || submitSuccess}
-                    className={`w-full px-4 py-2.5 border rounded-lg outline-none transition-all text-sm font-mono disabled:opacity-60 disabled:cursor-not-allowed ${formErrors.assetTag
-                      ? 'border-red-300 bg-red-50 focus:ring-2 focus:ring-red-500'
-                      : 'border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
-                      }`}
-                  />
-                  {formErrors.assetTag && <p className="mt-1 text-xs text-red-600">{formErrors.assetTag}</p>}
-                </div>
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* AssetTag with barcode generator */}
+                <BarcodeField
+                  ref={firstInputRef}
+                  value={form.assetTag}
+                  onChange={(val) => updateField('assetTag', val)}
+                  disabled={submitting || submitSuccess}
+                  error={formErrors.assetTag}
+                  prefix="PAT"
+                  label="Plaqueta (Tag) *"
+                  placeholder="Ex: PAT-M1R2K3456789"
+                />
+
+                {/* SerialNumber */}
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Nº de Série *</label>
                   <input
@@ -781,15 +783,15 @@ const Assets: React.FC = () => {
       {/* ===== DELETE CONFIRMATION MODAL ===== */}
       {showDeleteConfirm && deletingAsset && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-start justify-center p-4 sm:pt-12 overflow-y-auto"
           onClick={handleDeleteBackdropClick}
           style={{ animation: 'fadeIn 0.2s ease-out' }}
         >
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="fixed inset-0 modal-backdrop" />
 
           <div
             ref={deleteModalRef}
-            className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
+            className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto flex-shrink-0"
             style={{ animation: 'slideUp 0.3s ease-out' }}
           >
             {/* Header */}
@@ -804,6 +806,7 @@ const Assets: React.FC = () => {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={closeDeleteConfirm}
                 disabled={deleting}
                 className="p-1.5 rounded-lg hover:bg-white/20 transition-colors text-white disabled:opacity-50"

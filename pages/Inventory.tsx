@@ -3,6 +3,7 @@ import { dataService } from '../services/DataService';
 import { Product } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useDebounce } from '../hooks/useDebounce';
+import BarcodeField from '../components/BarcodeField';
 import { Search, Plus, AlertTriangle, CheckCircle, MapPin, X, Package, Loader2, Pencil, Trash2, Tag, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 interface ProductForm {
@@ -297,6 +298,7 @@ const Inventory: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold text-slate-800">Almoxarifado (Consumíveis)</h2>
         <button
+          type="button"
           onClick={openCreateModal}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
         >
@@ -319,6 +321,7 @@ const Inventory: React.FC = () => {
               />
             </div>
             <button
+              type="button"
               onClick={() => setLowStockFilter(prev => !prev)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all border whitespace-nowrap ${lowStockFilter
                 ? 'bg-amber-50 text-amber-700 border-amber-300 shadow-sm ring-2 ring-amber-200'
@@ -335,6 +338,7 @@ const Inventory: React.FC = () => {
             <div className="flex items-center gap-2 flex-wrap">
               <Tag size={14} className="text-slate-400 mr-1" />
               <button
+                type="button"
                 onClick={() => setSelectedCategory('')}
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${selectedCategory === ''
                   ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
@@ -345,6 +349,7 @@ const Inventory: React.FC = () => {
               </button>
               {categoryOptions.map(cat => (
                 <button
+                  type="button"
                   key={cat}
                   onClick={() => setSelectedCategory(cat === selectedCategory ? '' : cat)}
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${selectedCategory === cat
@@ -434,6 +439,7 @@ const Inventory: React.FC = () => {
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-center gap-1">
                             <button
+                              type="button"
                               onClick={() => openEditModal(product)}
                               title="Editar produto"
                               className="p-2 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-all"
@@ -441,6 +447,7 @@ const Inventory: React.FC = () => {
                               <Pencil size={16} />
                             </button>
                             <button
+                              type="button"
                               onClick={() => openDeleteConfirm(product)}
                               title="Excluir produto"
                               className="p-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-all"
@@ -469,17 +476,17 @@ const Inventory: React.FC = () => {
                   Página <span className="font-semibold text-slate-700">{page}</span> de <span className="font-semibold text-slate-700">{totalPages}</span>
                 </p>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => goToPage(1)} disabled={page === 1} className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Primeira página"><ChevronsLeft size={16} /></button>
-                  <button onClick={() => goToPage(page - 1)} disabled={page === 1} className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Página anterior"><ChevronLeft size={16} /></button>
+                  <button type="button" onClick={() => goToPage(1)} disabled={page === 1} className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Primeira página"><ChevronsLeft size={16} /></button>
+                  <button type="button" onClick={() => goToPage(page - 1)} disabled={page === 1} className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Página anterior"><ChevronLeft size={16} /></button>
                   {getPageNumbers().map((p, i) =>
                     p === '...' ? (
                       <span key={`dots-${i}`} className="px-2 text-slate-400 text-sm">…</span>
                     ) : (
-                      <button key={p} onClick={() => goToPage(p)} className={`min-w-[36px] h-9 rounded-lg text-sm font-medium transition-all ${p === page ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20' : 'text-slate-600 hover:bg-slate-200'}`}>{p}</button>
+                      <button type="button" key={p} onClick={() => goToPage(p)} className={`min-w-[36px] h-9 rounded-lg text-sm font-medium transition-all ${p === page ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20' : 'text-slate-600 hover:bg-slate-200'}`}>{p}</button>
                     )
                   )}
-                  <button onClick={() => goToPage(page + 1)} disabled={page === totalPages} className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Próxima página"><ChevronRight size={16} /></button>
-                  <button onClick={() => goToPage(totalPages)} disabled={page === totalPages} className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Última página"><ChevronsRight size={16} /></button>
+                  <button type="button" onClick={() => goToPage(page + 1)} disabled={page === totalPages} className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Próxima página"><ChevronRight size={16} /></button>
+                  <button type="button" onClick={() => goToPage(totalPages)} disabled={page === totalPages} className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Última página"><ChevronsRight size={16} /></button>
                 </div>
               </div>
             )}
@@ -490,15 +497,15 @@ const Inventory: React.FC = () => {
       {/* ===== CREATE / EDIT MODAL ===== */}
       {showModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-start justify-center p-4 sm:pt-12 overflow-y-auto"
           onClick={handleBackdropClick}
           style={{ animation: 'fadeIn 0.2s ease-out' }}
         >
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
 
           <div
             ref={modalRef}
-            className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
+            className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto flex-shrink-0"
             style={{ animation: 'slideUp 0.3s ease-out' }}
           >
             {/* Header */}
@@ -516,6 +523,7 @@ const Inventory: React.FC = () => {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={closeModal}
                 disabled={submitting}
                 className="p-1.5 rounded-lg hover:bg-white/20 transition-colors text-white disabled:opacity-50"
@@ -545,40 +553,36 @@ const Inventory: React.FC = () => {
             )}
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[65vh] overflow-y-auto">
-              {/* Name */}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Nome do Produto *</label>
-                <input
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Barcode */}
+                <BarcodeField
                   ref={firstInputRef}
-                  type="text"
-                  placeholder="Ex: Papel A4 Chamex"
-                  value={form.name}
-                  onChange={(e) => updateField('name', e.target.value)}
-                  disabled={submitting || submitSuccess}
-                  className={`w-full px-4 py-2.5 border rounded-lg outline-none transition-all text-sm disabled:opacity-60 disabled:cursor-not-allowed ${formErrors.name
-                    ? 'border-red-300 bg-red-50 focus:ring-2 focus:ring-red-500'
-                    : 'border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                    }`}
-                />
-                {formErrors.name && <p className="mt-1 text-xs text-red-600">{formErrors.name}</p>}
-              </div>
-
-              {/* Barcode */}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Código de Barras *</label>
-                <input
-                  type="text"
-                  placeholder="Ex: 7891011121314"
                   value={form.barcode}
-                  onChange={(e) => updateField('barcode', e.target.value)}
+                  onChange={(val) => updateField('barcode', val)}
                   disabled={submitting || submitSuccess}
-                  className={`w-full px-4 py-2.5 border rounded-lg outline-none transition-all text-sm font-mono disabled:opacity-60 disabled:cursor-not-allowed ${formErrors.barcode
-                    ? 'border-red-300 bg-red-50 focus:ring-2 focus:ring-red-500'
-                    : 'border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                    }`}
+                  error={formErrors.barcode}
+                  prefix="AG"
+                  label="Código de Barras *"
+                  placeholder="Ex: AG-M1R2K3456789"
                 />
-                {formErrors.barcode && <p className="mt-1 text-xs text-red-600">{formErrors.barcode}</p>}
+
+                {/* Name */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Nome do Produto *</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Papel A4 Chamex"
+                    value={form.name}
+                    onChange={(e) => updateField('name', e.target.value)}
+                    disabled={submitting || submitSuccess}
+                    className={`w-full px-4 py-2.5 border rounded-lg outline-none transition-all text-sm disabled:opacity-60 disabled:cursor-not-allowed ${formErrors.name
+                      ? 'border-red-300 bg-red-50 focus:ring-2 focus:ring-red-500'
+                      : 'border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                      }`}
+                  />
+                  {formErrors.name && <p className="mt-1 text-xs text-red-600">{formErrors.name}</p>}
+                </div>
               </div>
 
               {/* Category + Location grid */}
@@ -739,15 +743,15 @@ const Inventory: React.FC = () => {
       {/* ===== DELETE CONFIRMATION MODAL ===== */}
       {showDeleteConfirm && deletingProduct && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-start justify-center p-4 sm:pt-12 overflow-y-auto"
           onClick={handleDeleteBackdropClick}
           style={{ animation: 'fadeIn 0.2s ease-out' }}
         >
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
 
           <div
             ref={deleteModalRef}
-            className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
+            className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto flex-shrink-0"
             style={{ animation: 'slideUp 0.3s ease-out' }}
           >
             {/* Header */}
@@ -762,6 +766,7 @@ const Inventory: React.FC = () => {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={closeDeleteConfirm}
                 disabled={deleting}
                 className="p-1.5 rounded-lg hover:bg-white/20 transition-colors text-white disabled:opacity-50"

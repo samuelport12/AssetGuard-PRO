@@ -103,10 +103,10 @@ const Audit: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center animate-in">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Auditoria do Sistema</h2>
-          <p className="text-slate-500 text-sm">Registro imutável de todas as operações críticas</p>
+          <h2 className="text-2xl font-bold" style={{ color: '#0f172a', fontFamily: "'Outfit', sans-serif" }}>Auditoria do Sistema</h2>
+          <p style={{ color: '#94a3b8' }} className="text-sm">Registro imutável de todas as operações críticas</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="px-4 py-2 bg-slate-100 rounded-lg flex items-center gap-2 text-slate-600 text-sm font-medium">
@@ -121,7 +121,7 @@ const Audit: React.FC = () => {
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+      <div className="glass-card animate-in p-4" style={{ animationDelay: '60ms' }}>
         <div className="flex items-center gap-2 mb-3 text-slate-700">
           <Filter size={16} />
           <span className="text-sm font-semibold">Filtros</span>
@@ -204,7 +204,7 @@ const Audit: React.FC = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="glass-card animate-in overflow-hidden" style={{ animationDelay: '120ms' }}>
         {loading ? (
           <div className="flex items-center justify-center h-48 text-slate-500 text-sm">
             Carregando logs...
@@ -217,7 +217,7 @@ const Audit: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-slate-50 text-slate-500 text-xs uppercase font-semibold border-b border-slate-200">
+                <tr style={{ background: 'rgba(0,0,0,0.015)' }} className="text-xs uppercase font-semibold">
                   <th className="px-6 py-4">Data/Hora</th>
                   <th className="px-6 py-4">Usuário</th>
                   <th className="px-6 py-4">Ação</th>
@@ -234,7 +234,7 @@ const Audit: React.FC = () => {
                   </tr>
                 ) : (
                   logs.map((log) => (
-                    <tr key={log.id} className="hover:bg-slate-50 transition-colors">
+                    <tr key={log.id} className="table-row-hover">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2 text-sm text-slate-600">
                           <Clock size={14} className="text-slate-400" />
@@ -273,7 +273,7 @@ const Audit: React.FC = () => {
 
         {/* Pagination */}
         {!loading && !error && totalPages > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 bg-slate-50">
+          <div className="flex items-center justify-between px-6 py-4" style={{ borderTop: '1px solid rgba(0,0,0,0.04)', background: 'rgba(0,0,0,0.015)' }}>
             <p className="text-xs text-slate-500">
               Página <span className="font-semibold text-slate-700">{page}</span> de <span className="font-semibold text-slate-700">{totalPages}</span>
             </p>

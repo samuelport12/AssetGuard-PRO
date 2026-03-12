@@ -125,14 +125,14 @@ const Scanner: React.FC = () => {
     quantity > 0;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6 animate-in">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-slate-800">Scanner Rápido</h2>
-        <p className="text-slate-500">Modo de alta velocidade para leitor de código de barras</p>
+        <h2 className="text-3xl font-bold" style={{ color: '#0f172a', fontFamily: "'Outfit', sans-serif" }}>Scanner Rápido</h2>
+        <p style={{ color: '#94a3b8' }}>Modo de alta velocidade para leitor de código de barras</p>
       </div>
 
       {/* Mode Switcher */}
-      <div className="flex bg-slate-200 p-1 rounded-xl">
+      <div className="flex p-1 rounded-xl" style={{ background: 'rgba(0,0,0,0.04)' }}>
         <button
           onClick={() => { setMode('OUT'); setUnitCost(''); barcodeInputRef.current?.focus(); }}
           className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-bold transition-all ${mode === 'OUT' ? 'bg-red-500 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
@@ -150,7 +150,7 @@ const Scanner: React.FC = () => {
       </div>
 
       {/* Main Card */}
-      <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+      <div className="glass-card overflow-hidden" style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.08)' }}>
         {/* Status Bar */}
         <div className={`h-2 w-full ${message?.type === 'success' ? 'bg-emerald-500' : message?.type === 'error' ? 'bg-red-500' : 'bg-slate-200'}`} />
 

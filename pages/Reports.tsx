@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { dataService } from '../services/DataService';
 import { FileText, FileSpreadsheet, Loader2, Calendar, TrendingDown, Search, BarChart3, Package, Building2, ChevronDown, ClipboardList } from 'lucide-react';
+import { ranking } from '../theme/colors';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -154,7 +155,7 @@ const Reports: React.FC = () => {
 
             // Title
             doc.setFontSize(18);
-            doc.text('AssetGuard Pro', 40, 20);
+            doc.text('Bastion', 40, 20);
             doc.setFontSize(10);
             doc.setFont('helvetica', 'normal');
             doc.text('Relatório de Consumo por Setor', 40, 28);
@@ -318,10 +319,10 @@ const Reports: React.FC = () => {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 animate-in">
                 <div>
-                    <h2 className="text-2xl font-bold text-slate-800">Relatórios</h2>
-                    <p className="text-sm text-slate-500 mt-1">Relatório de consumo e movimentação por setor</p>
+                    <h2 className="text-2xl font-bold" style={{ color: '#0f172a', fontFamily: "'Outfit', sans-serif" }}>Relatórios</h2>
+                    <p style={{ color: '#94a3b8' }} className="text-sm mt-1">Relatório de consumo e movimentação por setor</p>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -345,7 +346,7 @@ const Reports: React.FC = () => {
             </div>
 
             {/* Filters */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-4">
+            <div className="glass-card animate-in p-4 space-y-4" style={{ animationDelay: '60ms' }}>
                 <div className="flex flex-wrap items-end gap-4">
                     <div>
                         <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
@@ -481,7 +482,7 @@ const Reports: React.FC = () => {
 
             {/* Empty state — before first search */}
             {!hasSearched && !loading && !error && (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
+                <div className="glass-card animate-in p-12 text-center" style={{ animationDelay: '120ms' }}>
                     <div className="flex justify-center mb-4">
                         <div className="p-4 bg-slate-100 rounded-full">
                             <ClipboardList size={40} className="text-slate-400" />
@@ -497,7 +498,7 @@ const Reports: React.FC = () => {
             {/* Summary Cards */}
             {hasSearched && !loading && !error && movements.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                    <div className="glass-card animate-in p-5" style={{ animationDelay: '180ms' }}>
                         <div className="flex items-center gap-3">
                             <div className="p-2.5 bg-red-50 rounded-lg">
                                 <TrendingDown size={20} className="text-red-600" />
@@ -508,7 +509,7 @@ const Reports: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                    <div className="glass-card animate-in p-5" style={{ animationDelay: '220ms' }}>
                         <div className="flex items-center gap-3">
                             <div className="p-2.5 bg-emerald-50 rounded-lg">
                                 <Package size={20} className="text-emerald-600" />
@@ -519,7 +520,7 @@ const Reports: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                    <div className="glass-card animate-in p-5" style={{ animationDelay: '260ms' }}>
                         <div className="flex items-center gap-3">
                             <div className="p-2.5 bg-amber-50 rounded-lg">
                                 <BarChart3 size={20} className="text-amber-600" />
@@ -550,8 +551,8 @@ const Reports: React.FC = () => {
 
             {/* Department Table */}
             {hasSearched && !loading && !error && (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
+                <div className="glass-card animate-in overflow-hidden" style={{ animationDelay: '300ms' }}>
+                    <div className="px-6 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.04)', background: 'rgba(0,0,0,0.015)' }}>
                         <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
                             Consumo por Setor
                         </h3>
@@ -568,7 +569,7 @@ const Reports: React.FC = () => {
                         <div className="overflow-x-auto">
                             <table className="w-full text-left">
                                 <thead>
-                                    <tr className="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
+                                    <tr style={{ background: 'rgba(0,0,0,0.015)' }} className="text-xs uppercase font-semibold">
                                         <th className="px-6 py-4">Setor</th>
                                         <th className="px-6 py-4 text-center">Saídas</th>
                                         <th className="px-6 py-4 text-right">Custo Saídas</th>
@@ -577,7 +578,7 @@ const Reports: React.FC = () => {
                                 <tbody className="divide-y divide-slate-200">
                                     {byDepartment.map((row) => {
                                         return (
-                                            <tr key={row.departmentId} className="hover:bg-slate-50 transition-colors">
+                                            <tr key={row.departmentId} className="table-row-hover">
                                                 <td className="px-6 py-4">
                                                     <span className="font-medium text-slate-900">{row.departmentName}</span>
                                                 </td>
@@ -608,8 +609,8 @@ const Reports: React.FC = () => {
 
             {/* Top Consumed */}
             {hasSearched && !loading && !error && topConsumed.length > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
+                <div className="glass-card animate-in overflow-hidden" style={{ animationDelay: '360ms' }}>
+                    <div className="px-6 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.04)', background: 'rgba(0,0,0,0.015)' }}>
                         <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
                             Top 10 Itens Mais Consumidos
                         </h3>
@@ -617,7 +618,7 @@ const Reports: React.FC = () => {
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead>
-                                <tr className="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
+                                <tr style={{ background: 'rgba(0,0,0,0.015)' }} className="text-xs uppercase font-semibold">
                                     <th className="px-6 py-4 w-12 text-center">#</th>
                                     <th className="px-6 py-4">Produto</th>
                                     <th className="px-6 py-4 text-center">Total Saídas</th>
@@ -629,7 +630,7 @@ const Reports: React.FC = () => {
                                     const maxSaidas = topConsumed[0]?.totalSaidas || 1;
                                     const pct = (row.totalSaidas / maxSaidas) * 100;
                                     return (
-                                        <tr key={row.productId} className="hover:bg-slate-50 transition-colors">
+                                        <tr key={row.productId} className="table-row-hover">
                                             <td className="px-6 py-3 text-center">
                                                 <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${i === 0 ? 'bg-amber-100 text-amber-700 border border-amber-300' :
                                                     i === 1 ? 'bg-slate-100 text-slate-600 border border-slate-300' :
@@ -649,9 +650,9 @@ const Reports: React.FC = () => {
                                                         className="h-2.5 rounded-full transition-all duration-500"
                                                         style={{
                                                             width: `${pct}%`,
-                                                            background: i === 0 ? 'linear-gradient(90deg, #ef4444, #f97316)' :
-                                                                i < 3 ? 'linear-gradient(90deg, #f97316, #fbbf24)' :
-                                                                    '#94a3b8',
+                                                            background: i === 0 ? ranking.top1 :
+                                                                i < 3 ? ranking.top2_3 :
+                                                                    ranking.default,
                                                         }}
                                                     />
                                                 </div>

@@ -23,6 +23,7 @@ import {
 } from 'recharts';
 import { dataService } from '../services/DataService';
 import { StockMovement, MovementsSummary } from '../types';
+import { chart, text, slate } from '../theme/colors';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -65,13 +66,13 @@ const CustomTooltip = ({ active, payload, label }: {
       padding: '10px 14px',
       boxShadow: '0 8px 32px rgba(0,0,0,0.24)',
     }}>
-      <p style={{ color: '#94a3b8', fontSize: 11, marginBottom: 6, fontWeight: 600, letterSpacing: '0.04em' }}>
+      <p style={{ color: text.muted, fontSize: 11, marginBottom: 6, fontWeight: 600, letterSpacing: '0.04em' }}>
         {label}
       </p>
       {payload.map((entry) => (
         <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
           <span style={{ width: 8, height: 8, borderRadius: 4, background: entry.color, display: 'inline-block' }} />
-          <span style={{ color: '#e2e8f0', fontSize: 12 }}>
+          <span style={{ color: text.light, fontSize: 12 }}>
             {entry.name === 'entradas' ? 'Entradas' : 'Saídas'}:{' '}
             <strong style={{ color: '#fff' }}>{entry.value} un.</strong>
           </span>
@@ -250,13 +251,13 @@ const Movements: React.FC = () => {
   return (
     <div>
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">Movimentações</h1>
-        <p className="text-slate-500 text-sm mt-1">Visão gráfica de entradas e saídas de estoque</p>
+      <div className="mb-6 animate-in">
+        <h1 className="text-2xl font-bold" style={{ color: '#0f172a', fontFamily: "'Outfit', sans-serif" }}>Movimentações</h1>
+        <p style={{ color: '#94a3b8' }} className="text-sm mt-1">Visão gráfica de entradas e saídas de estoque</p>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6 flex flex-wrap gap-3 items-end">
+      <div className="glass-card animate-in p-4 mb-6 flex flex-wrap gap-3 items-end" style={{ animationDelay: '60ms' }}>
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Data Início</label>
           <input
@@ -338,9 +339,9 @@ const Movements: React.FC = () => {
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-            <TrendingUp size={20} className="text-green-600" />
+        <div className="glass-card animate-in p-4 flex items-center gap-3" style={{ animationDelay: '120ms' }}>
+          <div className="stat-icon-gradient" style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
+            <TrendingUp size={20} />
           </div>
           <div>
             <p className="text-xs text-slate-500">Total Entradas</p>
@@ -348,9 +349,9 @@ const Movements: React.FC = () => {
             <p className="text-xs text-slate-400">unidades no período</p>
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
-            <TrendingDown size={20} className="text-red-600" />
+        <div className="glass-card animate-in p-4 flex items-center gap-3" style={{ animationDelay: '160ms' }}>
+          <div className="stat-icon-gradient" style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}>
+            <TrendingDown size={20} />
           </div>
           <div>
             <p className="text-xs text-slate-500">Total Saídas</p>
@@ -358,9 +359,9 @@ const Movements: React.FC = () => {
             <p className="text-xs text-slate-400">unidades no período</p>
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-            <DollarSign size={20} className="text-blue-600" />
+        <div className="glass-card animate-in p-4 flex items-center gap-3" style={{ animationDelay: '200ms' }}>
+          <div className="stat-icon-gradient" style={{ background: 'linear-gradient(135deg, #4F6BFF, #3b52db)' }}>
+            <DollarSign size={20} />
           </div>
           <div>
             <p className="text-xs text-slate-500">Total Gasto</p>
@@ -368,9 +369,9 @@ const Movements: React.FC = () => {
             <p className="text-xs text-slate-400">em entradas</p>
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-            <BarChart2 size={20} className="text-purple-600" />
+        <div className="glass-card animate-in p-4 flex items-center gap-3" style={{ animationDelay: '240ms' }}>
+          <div className="stat-icon-gradient" style={{ background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)' }}>
+            <BarChart2 size={20} />
           </div>
           <div>
             <p className="text-xs text-slate-500">Custo Médio Unit.</p>
@@ -387,7 +388,7 @@ const Movements: React.FC = () => {
         <div className="flex-1 min-w-0 flex flex-col gap-6">
 
           {/* Smooth area chart */}
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div className="glass-card animate-in overflow-hidden" style={{ animationDelay: '300ms' }}>
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h2 className="font-semibold text-slate-700">Movimentações por Dia</h2>
@@ -427,24 +428,24 @@ const Movements: React.FC = () => {
                   <AreaChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 4 }}>
                     <defs>
                       <linearGradient id="gradEntradas" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#34d399" stopOpacity={0.25} />
-                        <stop offset="95%" stopColor="#34d399" stopOpacity={0.02} />
+                        <stop offset="5%" stopColor={chart.entry} stopOpacity={0.25} />
+                        <stop offset="95%" stopColor={chart.entry} stopOpacity={0.02} />
                       </linearGradient>
                       <linearGradient id="gradSaidas" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#fb7185" stopOpacity={0.25} />
-                        <stop offset="95%" stopColor="#fb7185" stopOpacity={0.02} />
+                        <stop offset="5%" stopColor={chart.exit} stopOpacity={0.25} />
+                        <stop offset="95%" stopColor={chart.exit} stopOpacity={0.02} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} vertical={false} />
                     <XAxis
                       dataKey="date"
-                      tick={{ fontSize: 11, fill: '#94a3b8' }}
+                      tick={{ fontSize: 11, fill: chart.tick }}
                       axisLine={false}
                       tickLine={false}
                       interval="preserveStartEnd"
                     />
                     <YAxis
-                      tick={{ fontSize: 11, fill: '#94a3b8' }}
+                      tick={{ fontSize: 11, fill: chart.tick }}
                       axisLine={false}
                       tickLine={false}
                       width={36}
@@ -452,25 +453,25 @@ const Movements: React.FC = () => {
                     />
                     <RechartsTooltip
                       content={<CustomTooltip />}
-                      cursor={{ stroke: '#e2e8f0', strokeWidth: 1.5 }}
+                      cursor={{ stroke: chart.cursor, strokeWidth: 1.5 }}
                     />
                     <Area
                       type="monotoneX"
                       dataKey="entradas"
-                      stroke="#34d399"
+                      stroke={chart.entry}
                       strokeWidth={2.5}
                       fill="url(#gradEntradas)"
                       dot={false}
-                      activeDot={{ r: 5, fill: '#34d399', strokeWidth: 0 }}
+                      activeDot={{ r: 5, fill: chart.entry, strokeWidth: 0 }}
                     />
                     <Area
                       type="monotoneX"
                       dataKey="saidas"
-                      stroke="#fb7185"
+                      stroke={chart.exit}
                       strokeWidth={2.5}
                       fill="url(#gradSaidas)"
                       dot={false}
-                      activeDot={{ r: 5, fill: '#fb7185', strokeWidth: 0 }}
+                      activeDot={{ r: 5, fill: chart.exit, strokeWidth: 0 }}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -480,7 +481,7 @@ const Movements: React.FC = () => {
 
           {/* Top Products table */}
           {!loading && topProducts.length > 0 && (
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div className="glass-card animate-in overflow-hidden" style={{ animationDelay: '360ms' }}>
               <div className="px-6 py-4 border-b border-slate-100">
                 <h2 className="font-semibold text-slate-700">Produtos com Mais Movimentação</h2>
                 <p className="text-xs text-slate-400 mt-0.5">Clique no produto para ver detalhes</p>
@@ -532,7 +533,7 @@ const Movements: React.FC = () => {
 
         {/* Product Detail Panel */}
         {selectedProduct && (
-          <div className="w-96 flex-shrink-0 bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col sticky top-0">
+          <div className="w-96 flex-shrink-0 glass-card overflow-hidden flex flex-col sticky top-0">
             {/* Panel header */}
             <div className="px-4 py-4 border-b border-slate-100 flex items-start justify-between gap-2">
               <div>
@@ -581,23 +582,23 @@ const Movements: React.FC = () => {
                     </p>
                     <ResponsiveContainer width="100%" height={180}>
                       <LineChart data={priceEvolution} margin={{ top: 5, right: 8, left: 0, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                        <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
+                        <XAxis dataKey="date" tick={{ fontSize: 10, fill: chart.tick }} />
                         <YAxis
-                          tick={{ fontSize: 10, fill: '#94a3b8' }}
+                          tick={{ fontSize: 10, fill: chart.tick }}
                           tickFormatter={(v: number) => `R$${v.toFixed(0)}`}
                           width={52}
                         />
                         <RechartsTooltip
                           formatter={(v: number) => [fmtCurrency(v), 'Custo Unit.']}
-                          contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e2e8f0' }}
+                          contentStyle={{ fontSize: 12, borderRadius: 8, border: `1px solid ${chart.tooltipBorder}` }}
                         />
                         <Line
                           type="monotone"
                           dataKey="unitCost"
-                          stroke="#3b82f6"
+                          stroke={chart.price}
                           strokeWidth={2}
-                          dot={{ r: 4, fill: '#3b82f6', strokeWidth: 0 }}
+                          dot={{ r: 4, fill: chart.price, strokeWidth: 0 }}
                           activeDot={{ r: 6 }}
                         />
                       </LineChart>
