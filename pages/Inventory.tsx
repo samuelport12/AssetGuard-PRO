@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { dataService } from '../services/DataService';
 import { Product } from '../types';
 import { useAuth } from '../contexts/AuthContext';
@@ -495,18 +496,26 @@ const Inventory: React.FC = () => {
       </div>
 
       {/* ===== CREATE / EDIT MODAL ===== */}
-      {showModal && (
+      {showModal && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center p-4 sm:pt-12 overflow-y-auto"
+          className="flex items-center justify-center p-4"
           onClick={handleBackdropClick}
-          style={{ animation: 'fadeIn 0.2s ease-out' }}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            zIndex: 9999,
+            animation: 'fadeIn 0.2s ease-out',
+          }}
         >
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }} />
 
           <div
             ref={modalRef}
-            className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto flex-shrink-0"
-            style={{ animation: 'slideUp 0.3s ease-out' }}
+            className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex-shrink-0"
+            style={{ animation: 'slideUp 0.3s ease-out', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
           >
             {/* Header */}
             <div className={`flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-gradient-to-r ${isEditing ? 'from-amber-500 to-orange-500' : 'from-blue-600 to-indigo-600'
@@ -553,7 +562,7 @@ const Inventory: React.FC = () => {
             )}
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto" style={{ flex: '1 1 auto' }}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Barcode */}
                 <BarcodeField
@@ -737,17 +746,26 @@ const Inventory: React.FC = () => {
               to { opacity: 1; transform: translateY(0) scale(1); }
             }
           `}</style>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ===== DELETE CONFIRMATION MODAL ===== */}
-      {showDeleteConfirm && deletingProduct && (
+      {showDeleteConfirm && deletingProduct && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center p-4 sm:pt-12 overflow-y-auto"
+          className="flex items-center justify-center p-4"
           onClick={handleDeleteBackdropClick}
-          style={{ animation: 'fadeIn 0.2s ease-out' }}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            zIndex: 9999,
+            animation: 'fadeIn 0.2s ease-out',
+          }}
         >
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }} />
 
           <div
             ref={deleteModalRef}
@@ -845,7 +863,8 @@ const Inventory: React.FC = () => {
               to { opacity: 1; transform: translateY(0) scale(1); }
             }
           `}</style>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

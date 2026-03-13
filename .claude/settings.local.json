@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(curl -s http://localhost:3000/api/dashboard/stats)",
-      "Bash(echo \"EXIT: $?\")"
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(grep -r \"localhost:3001\\\\|0\\\\.0\\\\.0\\\\.0\\\\|API_URL\\\\|VITE_API\" /c/Users/win11/Desktop/PROJETO/assetguard-pro --include=\"*.ts\" --include=\"*.tsx\" --include=\"*.js\" --include=\"*.json\" 2>/dev/null | head -20)"
     ]
   }
 }
