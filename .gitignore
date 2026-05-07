@@ -23,4 +23,7 @@ server/.env
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
+
+# Next.js build and cache
+.next
+server/.next
