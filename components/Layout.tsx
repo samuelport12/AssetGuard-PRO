@@ -75,8 +75,8 @@ const Layout: React.FC = () => {
 
   const avatar = getAvatarData(user?.fullName || 'U');
 
-  const navClass = ({ isActive }: { isActive: boolean }) =>
-    `relative group flex items-center ${collapsed ? 'justify-center' : ''} gap-3 px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-200`;
+  const navClass = (iconClass: string) => ({ isActive }: { isActive: boolean }) =>
+    `relative group flex items-center ${collapsed ? 'justify-center' : ''} gap-3 px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 menu-item ${iconClass}${isActive ? ' active' : ''}`;
 
   const navStyle = (isActive: boolean): React.CSSProperties => ({
     backgroundColor: isActive ? 'rgba(79, 107, 255, 0.15)' : 'transparent',
@@ -210,8 +210,8 @@ const Layout: React.FC = () => {
           </button>
         </div>
 
-        <nav className={`flex-1 ${collapsed ? 'p-2' : 'px-3 py-4'} space-y-0.5 transition-all duration-300 overflow-y-auto`}>
-          <NavLink to="/" end className={navClass} style={({ isActive }) => navStyle(isActive)} {...navHoverHandler(false)}>
+        <nav className={`sidebar-animated flex-1 ${collapsed ? 'p-2' : 'px-3 py-4'} space-y-0.5 transition-all duration-300 overflow-y-auto`}>
+          <NavLink to="/" end className={navClass('i-dashboard')} style={({ isActive }) => navStyle(isActive)} {...navHoverHandler(false)}>
             {({ isActive }) => (
               <>
                 <ActiveIndicator isActive={isActive} />
@@ -241,7 +241,7 @@ const Layout: React.FC = () => {
           </div>
           {collapsed && <div className="my-2 mx-2" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }} />}
 
-          <NavLink to="/scanner" className={navClass} style={({ isActive }) => navStyle(isActive)} {...navHoverHandler(false)}>
+          <NavLink to="/scanner" className={navClass('i-scanner')} style={({ isActive }) => navStyle(isActive)} {...navHoverHandler(false)}>
             {({ isActive }) => (
               <>
                 <ActiveIndicator isActive={isActive} />
@@ -251,7 +251,7 @@ const Layout: React.FC = () => {
               </>
             )}
           </NavLink>
-          <NavLink to="/inventory" className={navClass} style={({ isActive }) => navStyle(isActive)} {...navHoverHandler(false)}>
+          <NavLink to="/inventory" className={navClass('i-almox')} style={({ isActive }) => navStyle(isActive)} {...navHoverHandler(false)}>
             {({ isActive }) => (
               <>
                 <ActiveIndicator isActive={isActive} />
@@ -261,7 +261,7 @@ const Layout: React.FC = () => {
               </>
             )}
           </NavLink>
-          <NavLink to="/movements" className={navClass} style={({ isActive }) => navStyle(isActive)} {...navHoverHandler(false)}>
+          <NavLink to="/movements" className={navClass('i-mov')} style={({ isActive }) => navStyle(isActive)} {...navHoverHandler(false)}>
             {({ isActive }) => (
               <>
                 <ActiveIndicator isActive={isActive} />
@@ -271,7 +271,7 @@ const Layout: React.FC = () => {
               </>
             )}
           </NavLink>
-          <NavLink to="/assets" className={navClass} style={({ isActive }) => navStyle(isActive)} {...navHoverHandler(false)}>
+          <NavLink to="/assets" className={navClass('i-ativos')} style={({ isActive }) => navStyle(isActive)} {...navHoverHandler(false)}>
             {({ isActive }) => (
               <>
                 <ActiveIndicator isActive={isActive} />
@@ -281,7 +281,7 @@ const Layout: React.FC = () => {
               </>
             )}
           </NavLink>
-          <NavLink to="/reports" className={navClass} style={({ isActive }) => navStyle(isActive)} {...navHoverHandler(false)}>
+          <NavLink to="/reports" className={navClass('i-relat')} style={({ isActive }) => navStyle(isActive)} {...navHoverHandler(false)}>
             {({ isActive }) => (
               <>
                 <ActiveIndicator isActive={isActive} />
@@ -310,7 +310,7 @@ const Layout: React.FC = () => {
                 Administrativo
               </div>
               {collapsed && <div className="my-2 mx-2" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }} />}
-              <NavLink to="/users" className={navClass} style={({ isActive }) => navStyle(isActive)} {...navHoverHandler(false)}>
+              <NavLink to="/users" className={navClass('i-users')} style={({ isActive }) => navStyle(isActive)} {...navHoverHandler(false)}>
                 {({ isActive }) => (
                   <>
                     <ActiveIndicator isActive={isActive} />
@@ -320,7 +320,7 @@ const Layout: React.FC = () => {
                   </>
                 )}
               </NavLink>
-              <NavLink to="/departments" className={navClass} style={({ isActive }) => navStyle(isActive)} {...navHoverHandler(false)}>
+              <NavLink to="/departments" className={navClass('i-setores')} style={({ isActive }) => navStyle(isActive)} {...navHoverHandler(false)}>
                 {({ isActive }) => (
                   <>
                     <ActiveIndicator isActive={isActive} />
@@ -330,7 +330,7 @@ const Layout: React.FC = () => {
                   </>
                 )}
               </NavLink>
-              <NavLink to="/audit" className={navClass} style={({ isActive }) => navStyle(isActive)} {...navHoverHandler(false)}>
+              <NavLink to="/audit" className={navClass('i-audit')} style={({ isActive }) => navStyle(isActive)} {...navHoverHandler(false)}>
                 {({ isActive }) => (
                   <>
                     <ActiveIndicator isActive={isActive} />

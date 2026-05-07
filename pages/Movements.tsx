@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   TrendingUp,
   TrendingDown,
@@ -8,6 +9,9 @@ import {
   X,
   Hash,
   Package,
+  Undo2,
+  Loader2,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   LineChart,
@@ -114,6 +118,12 @@ const Movements: React.FC = () => {
   const [productMovements, setProductMovements] = useState<StockMovement[]>([]);
   const [panelLoading, setPanelLoading] = useState(false);
 
+  // Reversal (estorno)
+  const [showReversalModal, setShowReversalModal] = useState(false);
+  const [reversingMovement, setReversingMovement] = useState<StockMovement | null>(null);
+  const [reversalProcessing, setReversalProcessing] = useState(false);
+  const [reversalError, setReversalError] = useState<string | null>(null);
+
   // Debounce
   const searchDebounce = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => {
@@ -185,6 +195,40 @@ const Movements: React.FC = () => {
     }
   };
 
+  // Reversal handler
+  const openReversalModal = (m: StockMovement) => {
+    setReversingMovement(m);
+    setReversalError(null);
+    setShowReversalModal(true);
+  };
+
+  const closeReversalModal = () => {
+    if (reversalProcessing) return;
+    setShowReversalModal(false);
+    setReversingMovement(null);
+    setReversalError(null);
+  };
+
+  const handleReversal = async () => {
+    if (!reversingMovement) return;
+    setReversalProcessing(true);
+    setReversalError(null);
+    try {
+      await dataService.reverseMovement(reversingMovement.id);
+      setShowReversalModal(false);
+      setReversingMovement(null);
+      // Reload data
+      await loadData();
+      if (selectedProduct) {
+        handleProductClick(selectedProduct.id, selectedProduct.name);
+      }
+    } catch (err: any) {
+      setReversalError(err.message || 'Erro ao estornar movimentação');
+    } finally {
+      setReversalProcessing(false);
+    }
+  };
+
   // ── Aggregate by day for main chart ──────────────────────────────────────
   const chartData = useMemo(() => {
     const byDay: Record<string, { date: string; entradas: number; saidas: number }> = {};
@@ -222,11 +266,12 @@ const Movements: React.FC = () => {
       if (m.type === 'ENTRADA') map[m.productId].entradas += m.quantity;
       else map[m.productId].saidas += m.quantity;
     });
-    return Object.entries(map)
+    const sorted = Object.entries(map)
       .map(([id, v]) => ({ id, ...v, total: v.entradas + v.saidas }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 8);
-  }, [movements]);
+      .sort((a, b) => b.total - a.total);
+    // When searching, show all matching products; otherwise top 5
+    return (debouncedSearch || debouncedBarcode) ? sorted : sorted.slice(0, 5);
+  }, [movements, debouncedSearch, debouncedBarcode]);
 
   // ── Product panel chart data ──────────────────────────────────────────────
   const priceEvolution = productMovements
@@ -623,41 +668,67 @@ const Movements: React.FC = () => {
                     <p className="text-sm text-slate-400 text-center py-4">Nenhuma movimentação</p>
                   ) : (
                     <div className="space-y-2">
-                      {productMovements.map((m) => (
-                        <div
-                          key={m.id}
-                          className="flex items-start justify-between p-3 rounded-lg bg-slate-50 gap-2"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                              {m.type === 'ENTRADA' ? (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-700">
-                                  ENTRADA
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-700">
-                                  SAÍDA
-                                </span>
+                      {productMovements.map((m) => {
+                        const isReversed = !!m.reversedAt;
+                        const isReversal = !!m.reversalOfId;
+                        return (
+                          <div
+                            key={m.id}
+                            className={`flex items-start justify-between p-3 rounded-lg gap-2 ${isReversed ? 'bg-slate-100 opacity-60' : isReversal ? 'bg-amber-50 border border-amber-200' : 'bg-slate-50'}`}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                                {m.type === 'ENTRADA' ? (
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-700 ${isReversed ? 'line-through' : ''}`}>
+                                    ENTRADA
+                                  </span>
+                                ) : (
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-700 ${isReversed ? 'line-through' : ''}`}>
+                                    SAÍDA
+                                  </span>
+                                )}
+                                {isReversed && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-200 text-slate-600">
+                                    ESTORNADO
+                                  </span>
+                                )}
+                                {isReversal && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-700">
+                                    ↩ ESTORNO
+                                  </span>
+                                )}
+                                <span className="text-xs text-slate-400">{fmtDate(m.createdAt)}</span>
+                              </div>
+                              {m.reason && (
+                                <p className="text-xs text-slate-500 truncate" title={m.reason}>
+                                  {m.reason}
+                                </p>
                               )}
-                              <span className="text-xs text-slate-400">{fmtDate(m.createdAt)}</span>
+                              {m.departmentName && (
+                                <p className="text-xs text-slate-400">{m.departmentName}</p>
+                              )}
                             </div>
-                            {m.reason && (
-                              <p className="text-xs text-slate-500 truncate" title={m.reason}>
-                                {m.reason}
-                              </p>
-                            )}
-                            {m.departmentName && (
-                              <p className="text-xs text-slate-400">{m.departmentName}</p>
-                            )}
+                            <div className="flex items-start gap-2 flex-shrink-0">
+                              <div className="text-right">
+                                <p className={`text-sm font-semibold ${isReversed ? 'text-slate-400 line-through' : 'text-slate-700'}`}>{m.quantity} un.</p>
+                                {m.type === 'ENTRADA' && (
+                                  <p className="text-xs text-slate-500">{fmtCurrency(m.unitCost)}/un</p>
+                                )}
+                              </div>
+                              {!isReversed && !isReversal && (
+                                <button
+                                  type="button"
+                                  onClick={() => openReversalModal(m)}
+                                  title="Estornar movimentação"
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-all flex-shrink-0"
+                                >
+                                  <Undo2 size={14} />
+                                </button>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-right flex-shrink-0">
-                            <p className="text-sm font-semibold text-slate-700">{m.quantity} un.</p>
-                            {m.type === 'ENTRADA' && (
-                              <p className="text-xs text-slate-500">{fmtCurrency(m.unitCost)}/un</p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -666,6 +737,147 @@ const Movements: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* ===== REVERSAL CONFIRMATION MODAL ===== */}
+      {showReversalModal && reversingMovement && createPortal(
+        <div
+          className="flex items-center justify-center p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) closeReversalModal(); }}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100vh',
+            zIndex: 9999,
+            animation: 'fadeIn 0.2s ease-out',
+          }}
+        >
+          <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh' }} />
+
+          <div
+            className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden flex-shrink-0"
+            style={{ animation: 'slideUp 0.3s ease-out' }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-amber-500 to-orange-500">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-lg">
+                  <Undo2 size={20} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Estornar Movimentação</h3>
+                  <p className="text-xs text-amber-100">Esta ação criará uma contra-movimentação</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeReversalModal}
+                disabled={reversalProcessing}
+                className="p-1.5 rounded-lg hover:bg-white/20 transition-colors text-white disabled:opacity-50"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              <p className="text-sm text-slate-600 mb-4">
+                Tem certeza que deseja estornar a movimentação abaixo? O estoque e custo médio do produto serão recalculados.
+              </p>
+
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-slate-700">Produto</span>
+                  <span className="text-sm font-semibold text-slate-900">{reversingMovement.productName}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-slate-700">Tipo</span>
+                  {reversingMovement.type === 'ENTRADA' ? (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-700">ENTRADA</span>
+                  ) : (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-700">SAÍDA</span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-slate-700">Quantidade</span>
+                  <span className="text-sm font-bold text-slate-900">{reversingMovement.quantity} un.</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-slate-700">Custo Unitário</span>
+                  <span className="text-sm text-slate-900">{fmtCurrency(reversingMovement.unitCost)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-slate-700">Data</span>
+                  <span className="text-sm text-slate-600">{fmtDate(reversingMovement.createdAt)}</span>
+                </div>
+                {reversingMovement.reason && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-slate-700">Motivo</span>
+                    <span className="text-sm text-slate-600 text-right max-w-[200px] truncate" title={reversingMovement.reason}>{reversingMovement.reason}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                <p className="text-xs text-amber-700">
+                  <strong>O que acontecerá:</strong> Será criada uma {reversingMovement.type === 'ENTRADA' ? 'SAÍDA' : 'ENTRADA'} de {reversingMovement.quantity} un.
+                  para reverter esta operação. O estoque e custo médio serão recalculados automaticamente.
+                </p>
+              </div>
+
+              {reversalError && (
+                <div className="mt-4 flex items-center gap-2 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm font-medium">
+                  <AlertTriangle size={18} />
+                  {reversalError}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 bg-slate-50">
+              <button
+                type="button"
+                onClick={closeReversalModal}
+                disabled={reversalProcessing}
+                className="px-5 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleReversal}
+                disabled={reversalProcessing}
+                className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-amber-500 rounded-lg hover:bg-amber-600 transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
+              >
+                {reversalProcessing ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Processando...
+                  </>
+                ) : (
+                  <>
+                    <Undo2 size={16} />
+                    Confirmar Estorno
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          <style>{`
+            @keyframes fadeIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+            @keyframes slideUp {
+              from { opacity: 0; transform: translateY(24px) scale(0.97); }
+              to { opacity: 1; transform: translateY(0) scale(1); }
+            }
+          `}</style>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

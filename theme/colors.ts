@@ -150,31 +150,31 @@ export const text = {
 /** Cores da sidebar, header e plano de fundo da aplicação.
  *  Sidebar: Midnight Blue (#191970) · Background: #ECEFF1 */
 export const layout = {
-  /** Plano de fundo geral da página */
-  pageBg:           '#ECEFF1',
+    /** Plano de fundo geral da página */
+    pageBg: '#ECEFF1',
 
-  /** Sidebar — fundo principal */
-  sidebarBg:        '#191970',
-  /** Sidebar — borda / divisória */
-  sidebarBorder:    '#232396',
-  /** Sidebar — item ativo */
-  sidebarActive:    '#2E2EB8',
-  /** Sidebar — hover sobre item */
-  sidebarHover:     '#222290',
-  /** Sidebar — texto primário */
-  sidebarText:      '#ffffff',
-  /** Sidebar — texto secundário / labels de seção */
-  sidebarTextMuted: 'rgba(255, 255, 255, 0.50)',
-  /** Sidebar — texto inativo (itens de menu) */
-  sidebarTextDim:   'rgba(255, 255, 255, 0.65)',
-  /** Sidebar — logo accent */
-  sidebarLogo:      '#4169E1',       // Royal Blue
-  /** Sidebar — botão logout fundo */
-  sidebarLogoutBg:  '#222290',
-  /** Sidebar — botão logout hover */
-  sidebarLogoutHover: '#2E2EB8',
-  /** Sidebar — sombra ativa */
-  sidebarActiveShadow: 'rgba(46, 46, 184, 0.35)',
+    /** Sidebar — fundo principal */
+    sidebarBg: '#191970',
+    /** Sidebar — borda / divisória */
+    sidebarBorder: '#232396',
+    /** Sidebar — item ativo */
+    sidebarActive: '#2E2EB8',
+    /** Sidebar — hover sobre item */
+    sidebarHover: '#222290',
+    /** Sidebar — texto primário */
+    sidebarText: '#ffffff',
+    /** Sidebar — texto secundário / labels de seção */
+    sidebarTextMuted: 'rgba(255, 255, 255, 0.50)',
+    /** Sidebar — texto inativo (itens de menu) */
+    sidebarTextDim: 'rgba(255, 255, 255, 0.65)',
+    /** Sidebar — logo accent */
+    sidebarLogo: '#4169E1',       // Royal Blue
+    /** Sidebar — botão logout fundo */
+    sidebarLogoutBg: '#222290',
+    /** Sidebar — botão logout hover */
+    sidebarLogoutHover: '#2E2EB8',
+    /** Sidebar — sombra ativa */
+    sidebarActiveShadow: 'rgba(46, 46, 184, 0.35)',
 } as const;
 
 // ─── CORES_DASHBOARD (atalho de compatibilidade) ────────────────────

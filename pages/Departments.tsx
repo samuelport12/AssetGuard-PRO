@@ -231,10 +231,10 @@ const Departments: React.FC = () => {
             {/* Modal */}
             {modalOpen && createPortal(
                 <div
-                    style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 9999 }}
+                    style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 9999 }}
                     className="flex items-center justify-center"
                 >
-                    <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }} onClick={closeModal}></div>
+                    <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh' }} onClick={closeModal}></div>
                     <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
                         {/* Modal Header */}
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">

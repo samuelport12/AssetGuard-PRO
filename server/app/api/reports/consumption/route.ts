@@ -60,6 +60,7 @@ export async function GET(request: NextRequest) {
             totalEntradas: number;
             totalSaidas: number;
             totalExitCost: number;
+            totalEntryCost: number;
         }>();
 
         const NO_DEPT = '__SEM_SETOR__';
@@ -73,10 +74,12 @@ export async function GET(request: NextRequest) {
                 totalEntradas: 0,
                 totalSaidas: 0,
                 totalExitCost: 0,
+                totalEntryCost: 0,
             };
 
             if (m.type === 'ENTRADA') {
                 existing.totalEntradas += m.quantity;
+                existing.totalEntryCost += (m.unitCost ?? 0) * m.quantity;
             } else {
                 existing.totalSaidas += m.quantity;
                 existing.totalExitCost += (m.unitCost ?? 0) * m.quantity;
@@ -110,6 +113,28 @@ export async function GET(request: NextRequest) {
             .sort((a, b) => b.totalSaidas - a.totalSaidas)
             .slice(0, 10);
 
+        // Top 10 most received products (by ENTRADA quantity)
+        const productEntradaMap = new Map<string, {
+            productId: string;
+            productName: string;
+            totalEntradas: number;
+        }>();
+
+        for (const m of movements) {
+            if (m.type !== 'ENTRADA') continue;
+            const existing = productEntradaMap.get(m.productId) || {
+                productId: m.productId,
+                productName: m.product.name,
+                totalEntradas: 0,
+            };
+            existing.totalEntradas += m.quantity;
+            productEntradaMap.set(m.productId, existing);
+        }
+
+        const topEntradas = Array.from(productEntradaMap.values())
+            .sort((a, b) => b.totalEntradas - a.totalEntradas)
+            .slice(0, 10);
+
         // Format movements for response (Excel export)
         const formattedMovements = movements.map((m) => ({
             date: (m.movementDate ?? m.createdAt).toISOString(),
@@ -125,6 +150,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
             byDepartment,
             topConsumed,
+            topEntradas,
             movements: formattedMovements,
             departments: departments.map(d => ({ id: d.id, name: d.name })),
         });

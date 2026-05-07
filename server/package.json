@@ -6,7 +6,8 @@
         "dev": "next dev -p 3001",
         "build": "next build",
         "start": "next start -p 3001",
-        "seed": "npx tsx seed.ts"
+        "seed": "npx tsx seed.ts",
+        "test": "npx vitest run"
     },
     "dependencies": {
         "@prisma/client": "^6.0.0",
@@ -15,7 +16,8 @@
         "jsonwebtoken": "^9.0.2",
         "next": "^14.2.0",
         "react": "^18.3.0",
-        "react-dom": "^18.3.0"
+        "react-dom": "^18.3.0",
+        "zod": "^4.3.6"
     },
     "devDependencies": {
         "@types/bcryptjs": "^2.4.6",
@@ -25,7 +27,8 @@
         "@types/react": "19.2.14",
         "prisma": "^6.0.0",
         "tsx": "^4.19.0",
-        "typescript": "^5.8.0"
+        "typescript": "^5.8.0",
+        "vitest": "^4.1.0"
     },
     "prisma": {
         "seed": "npx tsx seed.ts"

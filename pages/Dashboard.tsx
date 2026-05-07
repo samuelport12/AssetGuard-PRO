@@ -249,7 +249,7 @@ const Dashboard: React.FC = () => {
               color: '#fff',
               fontSize: 13,
               fontWeight: 700,
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: "'Poppins', sans-serif",
             }}
           >
             <span style={{
@@ -280,7 +280,7 @@ const Dashboard: React.FC = () => {
               color: '#fff',
               fontSize: 13,
               fontWeight: 700,
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: "'Poppins', sans-serif",
             }}
           >
             <span style={{

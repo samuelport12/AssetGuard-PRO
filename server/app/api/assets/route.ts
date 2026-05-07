@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
 import { Prisma } from '@prisma/client';
+import { validateBody } from '@/lib/validate';
+import { assetSchema } from '@/lib/validators';
 
 const PAGE_SIZE = 20;
 
@@ -45,6 +47,7 @@ export async function GET(request: NextRequest) {
             orderBy: { name: 'asc' },
             skip: (safePage - 1) * limit,
             take: limit,
+            include: { photos: true },
         });
 
         // Filter options (unfiltered)
@@ -92,7 +95,10 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const body = await request.json();
+        const validation = await validateBody(request, assetSchema);
+        if (!validation.success) return validation.response;
+        
+        const body = validation.data;
 
         const existing = await prisma.asset.findUnique({
             where: { assetTag: body.assetTag },

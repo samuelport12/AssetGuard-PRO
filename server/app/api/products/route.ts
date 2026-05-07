@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
 import { Prisma } from '@prisma/client';
+import { validateBody } from '@/lib/validate';
+import { productCreateSchema } from '@/lib/validators';
 
 const PAGE_SIZE = 20;
 
@@ -60,13 +62,22 @@ export async function GET(request: NextRequest) {
                 orderBy: { category: 'asc' },
             });
 
+            const locations = await prisma.product.findMany({
+                select: { location: true },
+                distinct: ['location'],
+                orderBy: { location: 'asc' },
+            });
+
             return NextResponse.json({
                 products,
                 total,
                 page: safePage,
                 totalPages,
                 limit,
-                filterOptions: { categories: categories.map(c => c.category) },
+                filterOptions: { 
+                  categories: categories.map(c => c.category),
+                  locations: locations.map(l => l.location)
+                },
             });
         }
 
@@ -88,13 +99,22 @@ export async function GET(request: NextRequest) {
             orderBy: { category: 'asc' },
         });
 
+        const locations = await prisma.product.findMany({
+            select: { location: true },
+            distinct: ['location'],
+            orderBy: { location: 'asc' },
+        });
+
         return NextResponse.json({
             products,
             total,
             page: safePage,
             totalPages,
             limit,
-            filterOptions: { categories: categories.map(c => c.category) },
+            filterOptions: { 
+              categories: categories.map(c => c.category),
+              locations: locations.map(l => l.location)
+            },
         });
     } catch (error) {
         console.error('Get products error:', error);
@@ -112,47 +132,49 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const body = await request.json();
-        const { name, barcode, quantity, minStock, location, category, unitValue } = body;
-
-        if (!name || !barcode || quantity == null || minStock == null || !location || !category || unitValue == null) {
-            return NextResponse.json({ error: 'Campos obrigatórios não preenchidos' }, { status: 400 });
-        }
+        const validation = await validateBody(request, productCreateSchema);
+        if (!validation.success) return validation.response;
+        
+        const { name, barcode, quantity, minStock, location, category, unitValue } = validation.data;
 
         const existing = await prisma.product.findUnique({ where: { barcode } });
         if (existing) {
             return NextResponse.json({ error: 'Já existe um produto com este código de barras' }, { status: 409 });
         }
 
-        const product = await prisma.product.create({
-            data: { name, barcode, quantity, minStock, location, category, unitValue },
-        });
+        const product = await prisma.$transaction(async (tx) => {
+            const product = await tx.product.create({
+                data: { name, barcode, quantity, minStock, location, category, unitValue },
+            });
 
-        // Record the initial stock as an ENTRADA movement so historical cost
-        // tracking starts from day one (unitCost is locked to unitValue at creation).
-        if (quantity > 0) {
-            await prisma.stockMovement.create({
+            // Record the initial stock as an ENTRADA movement so historical cost
+            // tracking starts from day one (unitCost is locked to unitValue at creation).
+            if (quantity > 0) {
+                await tx.stockMovement.create({
+                    data: {
+                        productId: product.id,
+                        type: 'ENTRADA',
+                        quantity,
+                        unitCost: unitValue,
+                        reason: 'Estoque inicial',
+                        userId: user.id,
+                        userName: user.fullName,
+                    },
+                });
+            }
+
+            await tx.auditLog.create({
                 data: {
-                    productId: product.id,
-                    type: 'ENTRADA',
-                    quantity,
-                    unitCost: unitValue,
-                    reason: 'Estoque inicial',
                     userId: user.id,
                     userName: user.fullName,
+                    action: 'CREATE',
+                    targetType: 'PRODUCT',
+                    targetId: product.id,
+                    details: `Produto "${name}" cadastrado com ${quantity} unidades`,
                 },
             });
-        }
 
-        await prisma.auditLog.create({
-            data: {
-                userId: user.id,
-                userName: user.fullName,
-                action: 'CREATE',
-                targetType: 'PRODUCT',
-                targetId: product.id,
-                details: `Produto "${name}" cadastrado com ${quantity} unidades`,
-            },
+            return product;
         });
 
         return NextResponse.json(product, { status: 201 });

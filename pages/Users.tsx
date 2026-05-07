@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { dataService } from '../services/DataService';
 import { User, Role } from '../types';
-import { Users as UsersIcon, UserPlus, Pencil, Power, X, ShieldCheck, Wrench } from 'lucide-react';
+import { Users as UsersIcon, UserPlus, Pencil, Power, X, ShieldCheck, Wrench, KeyRound } from 'lucide-react';
 
 interface UserFormData {
     fullName: string;
@@ -36,6 +36,13 @@ const Users: React.FC = () => {
     const [formData, setFormData] = useState<UserFormData>(EMPTY_FORM);
     const [formError, setFormError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
+
+    // Reset password state
+    const [showResetPassword, setShowResetPassword] = useState(false);
+    const [resetPassword, setResetPassword] = useState('');
+    const [resetConfirmPassword, setResetConfirmPassword] = useState('');
+    const [resetSuccess, setResetSuccess] = useState<string | null>(null);
+    const [resetLoading, setResetLoading] = useState(false);
 
     // Redirect non-admin
     useEffect(() => {
@@ -85,6 +92,10 @@ const Users: React.FC = () => {
         setEditingUser(null);
         setFormData(EMPTY_FORM);
         setFormError(null);
+        setShowResetPassword(false);
+        setResetPassword('');
+        setResetConfirmPassword('');
+        setResetSuccess(null);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -134,6 +145,38 @@ const Users: React.FC = () => {
             setFormError(err.message);
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleResetPassword = async () => {
+        if (!editingUser) return;
+        setFormError(null);
+        setResetSuccess(null);
+
+        if (resetPassword.length < 6) {
+            setFormError('A nova senha deve ter no mínimo 6 caracteres.');
+            return;
+        }
+
+        if (resetPassword !== resetConfirmPassword) {
+            setFormError('As senhas não coincidem.');
+            return;
+        }
+
+        try {
+            setResetLoading(true);
+            await dataService.updateUserPassword(editingUser.id, resetPassword);
+            setResetSuccess('Senha redefinida com sucesso!');
+            setResetPassword('');
+            setResetConfirmPassword('');
+            setTimeout(() => {
+                setShowResetPassword(false);
+                setResetSuccess(null);
+            }, 2000);
+        } catch (err: any) {
+            setFormError(err.message);
+        } finally {
+            setResetLoading(false);
         }
     };
 
@@ -250,8 +293,8 @@ const Users: React.FC = () => {
                                                     onClick={() => handleToggleStatus(u)}
                                                     title={u.isActive ? 'Desativar usuário' : 'Ativar usuário'}
                                                     className={`p-2 rounded-lg transition-all duration-200 ${u.isActive
-                                                            ? 'text-slate-400 hover:text-red-600 hover:bg-red-50'
-                                                            : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
+                                                        ? 'text-slate-400 hover:text-red-600 hover:bg-red-50'
+                                                        : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
                                                         }`}
                                                 >
                                                     <Power size={16} />
@@ -276,10 +319,10 @@ const Users: React.FC = () => {
             {/* Modal */}
             {modalOpen && createPortal(
                 <div
-                    style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 9999 }}
+                    style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 9999 }}
                     className="flex items-center justify-center"
                 >
-                    <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }} onClick={closeModal}></div>
+                    <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh' }} onClick={closeModal}></div>
                     <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
                         {/* Modal Header */}
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
@@ -372,6 +415,79 @@ const Users: React.FC = () => {
                                     <option value="ADMIN">Administrador</option>
                                 </select>
                             </div>
+
+                            {editingUser && (
+                                <div className="border-t border-slate-100 pt-4 mt-4">
+                                    {!showResetPassword ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowResetPassword(true);
+                                                setResetPassword('');
+                                                setResetConfirmPassword('');
+                                                setResetSuccess(null);
+                                            }}
+                                            className="text-sm font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1.5 transition-colors"
+                                        >
+                                            <KeyRound size={16} />
+                                            Redefinir senha deste usuário
+                                        </button>
+                                    ) : (
+                                        <div className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200 animate-in fade-in slide-in-from-top-2 duration-200">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                                                    <KeyRound size={14} className="text-blue-600" />
+                                                    Nova Senha
+                                                </h4>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowResetPassword(false)}
+                                                    className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+                                                >
+                                                    Cancelar
+                                                </button>
+                                            </div>
+
+                                            {resetSuccess && (
+                                                <div className="px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs">
+                                                    {resetSuccess}
+                                                </div>
+                                            )}
+
+                                            <div>
+                                                <label className="block text-xs font-semibold text-slate-600 mb-1">Nova Senha</label>
+                                                <input
+                                                    type="password"
+                                                    value={resetPassword}
+                                                    onChange={(e) => setResetPassword(e.target.value)}
+                                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                                    placeholder="Mínimo 6 caracteres"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs font-semibold text-slate-600 mb-1">Confirmar Nova Senha</label>
+                                                <input
+                                                    type="password"
+                                                    value={resetConfirmPassword}
+                                                    onChange={(e) => setResetConfirmPassword(e.target.value)}
+                                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                                    placeholder="Repita a nova senha"
+                                                />
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={handleResetPassword}
+                                                disabled={resetLoading || !resetPassword || !resetConfirmPassword}
+                                                className="w-full px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                                            >
+                                                {resetLoading ? 'Salvando...' : 'Atualizar Senha'}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Modal Footer */}
                             <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">

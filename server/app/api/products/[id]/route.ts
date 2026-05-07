@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
+import { validateBody } from '@/lib/validate';
+import { productUpdateSchema } from '@/lib/validators';
 
 export async function PUT(
     request: NextRequest,
@@ -13,12 +15,10 @@ export async function PUT(
 
     try {
         const { id } = params;
-        const body = await request.json();
-        const { name, barcode, quantity, minStock, location, category } = body;
-
-        if (!name || !barcode || quantity == null || minStock == null || !location || !category) {
-            return NextResponse.json({ error: 'Campos obrigatórios não preenchidos' }, { status: 400 });
-        }
+        const validation = await validateBody(request, productUpdateSchema);
+        if (!validation.success) return validation.response;
+        
+        const { name, barcode, quantity, minStock, location, category } = validation.data;
 
         const existing = await prisma.product.findUnique({ where: { id } });
         if (!existing) {

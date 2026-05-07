@@ -9,7 +9,7 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -19,7 +19,7 @@ const Login: React.FC = () => {
     setLoading(true);
 
     const success = await login(username, password);
-    
+
     if (success) {
       navigate('/');
     } else {
@@ -33,7 +33,7 @@ const Login: React.FC = () => {
       style={{
         minHeight: '100vh',
         display: 'flex',
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: "'Poppins', sans-serif",
         background: '#f5f7fb',
       }}
     >
@@ -279,72 +279,7 @@ const Login: React.FC = () => {
           </button>
         </form>
 
-        {/* Demo credentials */}
-        <div
-          style={{
-            marginTop: 32,
-            paddingTop: 24,
-            borderTop: '1px solid #f1f5f9',
-            textAlign: 'center',
-          }}
-        >
-          <p style={{ fontSize: 12, color: '#94a3b8', margin: '0 0 6px' }}>
-            Demo:{' '}
-            <span
-              style={{
-                fontFamily: 'monospace',
-                background: '#f1f5f9',
-                padding: '2px 8px',
-                borderRadius: 6,
-                color: '#475569',
-                fontSize: 11,
-              }}
-            >
-              admin
-            </span>{' '}
-            /{' '}
-            <span
-              style={{
-                fontFamily: 'monospace',
-                background: '#f1f5f9',
-                padding: '2px 8px',
-                borderRadius: 6,
-                color: '#475569',
-                fontSize: 11,
-              }}
-            >
-              admin
-            </span>
-          </p>
-          <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>
-            Operador:{' '}
-            <span
-              style={{
-                fontFamily: 'monospace',
-                background: '#f1f5f9',
-                padding: '2px 8px',
-                borderRadius: 6,
-                color: '#475569',
-                fontSize: 11,
-              }}
-            >
-              operador
-            </span>{' '}
-            /{' '}
-            <span
-              style={{
-                fontFamily: 'monospace',
-                background: '#f1f5f9',
-                padding: '2px 8px',
-                borderRadius: 6,
-                color: '#475569',
-                fontSize: 11,
-              }}
-            >
-              operador
-            </span>
-          </p>
-        </div>
+
       </div>
 
       {/* ── Right panel: Illustration ──────────────────────────── */}

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
+import { validateBody } from '@/lib/validate';
+import { assetSchema } from '@/lib/validators';
 
 export async function PUT(
     request: NextRequest,
@@ -13,12 +15,11 @@ export async function PUT(
 
     try {
         const { id } = params;
-        const body = await request.json();
+        const validation = await validateBody(request, assetSchema);
+        if (!validation.success) return validation.response;
+        
+        const body = validation.data;
         const { assetTag, serialNumber, name, description, acquisitionDate, purchaseValue, location, status, usefulLifeYears } = body;
-
-        if (!assetTag || !serialNumber || !name || !description || !acquisitionDate || purchaseValue == null || !location || !status || usefulLifeYears == null) {
-            return NextResponse.json({ error: 'Campos obrigatórios não preenchidos' }, { status: 400 });
-        }
 
         const existing = await prisma.asset.findUnique({ where: { id } });
         if (!existing) {
@@ -46,6 +47,7 @@ export async function PUT(
                 status,
                 usefulLifeYears,
             },
+            include: { photos: true },
         });
 
         await prisma.auditLog.create({

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
+import { validateBody } from '@/lib/validate';
+import { departmentSchema } from '@/lib/validators';
 
 export async function GET(request: NextRequest) {
     const user = verifyToken(request);
@@ -36,15 +38,10 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const body = await request.json();
-        const { name, costCenterCode } = body;
-
-        if (!name || !costCenterCode) {
-            return NextResponse.json(
-                { error: 'Nome e código do centro de custo são obrigatórios' },
-                { status: 400 }
-            );
-        }
+        const validation = await validateBody(request, departmentSchema);
+        if (!validation.success) return validation.response;
+        
+        const { name, costCenterCode } = validation.data;
 
         const existing = await prisma.department.findUnique({
             where: { costCenterCode },

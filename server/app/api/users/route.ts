@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
+import { validateBody } from '@/lib/validate';
+import { createUserSchema } from '@/lib/validators';
 
 export async function GET(request: NextRequest) {
     const user = verifyToken(request);
@@ -45,22 +47,10 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const body = await request.json();
-        const { fullName, username, password, role } = body;
-
-        if (!fullName || !username || !password) {
-            return NextResponse.json(
-                { error: 'Nome completo, username e senha são obrigatórios' },
-                { status: 400 }
-            );
-        }
-
-        if (password.length < 6) {
-            return NextResponse.json(
-                { error: 'A senha deve ter no mínimo 6 caracteres' },
-                { status: 400 }
-            );
-        }
+        const validation = await validateBody(request, createUserSchema);
+        if (!validation.success) return validation.response;
+        
+        const { fullName, username, password, role } = validation.data;
 
         const existing = await prisma.user.findUnique({
             where: { username },

@@ -22,6 +22,14 @@ export interface Product {
 
 export type AssetStatus = 'IN_USE' | 'MAINTENANCE' | 'DISPOSED' | 'AVAILABLE';
 
+export interface AssetPhoto {
+  id: string;
+  assetId: string;
+  filename: string;
+  url: string;
+  createdAt: string;
+}
+
 export interface Asset {
   id: string;
   assetTag: string; // Plaqueta
@@ -33,6 +41,7 @@ export interface Asset {
   location: string;
   status: AssetStatus;
   usefulLifeYears: number;
+  photos?: AssetPhoto[];
 }
 
 export interface Department {
@@ -77,6 +86,8 @@ export interface StockMovement {
   userId: string;
   userName: string;
   createdAt: string;
+  reversedAt?: string | null;
+  reversalOfId?: string | null;
 }
 
 export interface MovementsSummary {

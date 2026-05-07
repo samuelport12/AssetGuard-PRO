@@ -5,6 +5,8 @@ import { Product } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useDebounce } from '../hooks/useDebounce';
 import BarcodeField from '../components/BarcodeField';
+import CustomSelect from '../components/CustomSelect';
+import CreatableSelect from '../components/CreatableSelect';
 import { Search, Plus, AlertTriangle, CheckCircle, MapPin, X, Package, Loader2, Pencil, Trash2, Tag, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 interface ProductForm {
@@ -29,6 +31,16 @@ const EMPTY_FORM: ProductForm = {
 
 const CATEGORIES = ['Escritório', 'Informática', 'EPI', 'Limpeza', 'Brindes', 'Itens de copa', 'Outros'];
 
+const CATEGORY_OPTIONS = [
+  { value: 'Escritório', label: 'Escritório', icon: '📎' },
+  { value: 'Informática', label: 'Informática', icon: '💻' },
+  { value: 'EPI', label: 'EPI', icon: '🦺' },
+  { value: 'Limpeza', label: 'Limpeza', icon: '🧹' },
+  { value: 'Brindes', label: 'Brindes', icon: '🎁' },
+  { value: 'Itens de copa', label: 'Itens de copa', icon: '☕' },
+  { value: 'Outros', label: 'Outros', icon: '📦' },
+];
+
 const PAGE_SIZE = 20;
 
 const Inventory: React.FC = () => {
@@ -45,6 +57,7 @@ const Inventory: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
+  const [locationOptions, setLocationOptions] = useState<string[]>([]);
 
   // Debounce search (500ms)
   const debouncedSearch = useDebounce(searchTerm, 500);
@@ -59,6 +72,9 @@ const Inventory: React.FC = () => {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
+
+  // Discard confirmation state
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
   // Delete confirmation state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -83,6 +99,7 @@ const Inventory: React.FC = () => {
       setTotalPages(data.totalPages);
       setTotal(data.total);
       setCategoryOptions(data.filterOptions.categories);
+      setLocationOptions(data.filterOptions.locations || []);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -111,16 +128,18 @@ const Inventory: React.FC = () => {
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (showDeleteConfirm && !deleting) {
+        if (showDiscardConfirm) {
+          setShowDiscardConfirm(false);
+        } else if (showDeleteConfirm && !deleting) {
           closeDeleteConfirm();
         } else if (showModal && !submitting) {
-          closeModal();
+          requestCloseModal();
         }
       }
     };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
-  }, [showModal, submitting, showDeleteConfirm, deleting]);
+  }, [showModal, submitting, showDeleteConfirm, deleting, showDiscardConfirm]);
 
   // Generate page numbers
   const getPageNumbers = (): (number | '...')[] => {
@@ -167,15 +186,41 @@ const Inventory: React.FC = () => {
     setShowModal(true);
   };
 
+  const hasUnsavedChanges = (): boolean => {
+    if (submitSuccess) return false;
+    if (editingProduct) {
+      return (
+        form.name !== editingProduct.name ||
+        form.barcode !== editingProduct.barcode ||
+        form.category !== editingProduct.category ||
+        form.location !== editingProduct.location ||
+        form.quantity !== String(editingProduct.quantity) ||
+        form.minStock !== String(editingProduct.minStock) ||
+        form.unitValue !== String(editingProduct.unitValue)
+      );
+    }
+    return Object.values(form).some(v => v !== '');
+  };
+
   const closeModal = () => {
     if (submitting) return;
     setShowModal(false);
     setEditingProduct(null);
+    setShowDiscardConfirm(false);
+  };
+
+  const requestCloseModal = () => {
+    if (submitting) return;
+    if (hasUnsavedChanges()) {
+      setShowDiscardConfirm(true);
+    } else {
+      closeModal();
+    }
   };
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
-      closeModal();
+      requestCloseModal();
     }
   };
 
@@ -504,17 +549,17 @@ const Inventory: React.FC = () => {
             position: 'fixed',
             top: 0,
             left: 0,
-            width: '100vw',
+            width: '100%',
             height: '100vh',
             zIndex: 9999,
             animation: 'fadeIn 0.2s ease-out',
           }}
         >
-          <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }} />
+          <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh' }} />
 
           <div
             ref={modalRef}
-            className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex-shrink-0"
+            className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden flex-shrink-0"
             style={{ animation: 'slideUp 0.3s ease-out', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
           >
             {/* Header */}
@@ -533,7 +578,7 @@ const Inventory: React.FC = () => {
               </div>
               <button
                 type="button"
-                onClick={closeModal}
+                onClick={requestCloseModal}
                 disabled={submitting}
                 className="p-1.5 rounded-lg hover:bg-white/20 transition-colors text-white disabled:opacity-50"
               >
@@ -598,34 +643,25 @@ const Inventory: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Categoria *</label>
-                  <select
+                  <CustomSelect
                     value={form.category}
-                    onChange={(e) => updateField('category', e.target.value)}
+                    onChange={(val) => updateField('category', val)}
+                    options={CATEGORY_OPTIONS}
+                    placeholder="Selecione..."
                     disabled={submitting || submitSuccess}
-                    className={`w-full px-4 py-2.5 border rounded-lg outline-none transition-all text-sm disabled:opacity-60 disabled:cursor-not-allowed appearance-none bg-white ${formErrors.category
-                      ? 'border-red-300 bg-red-50 focus:ring-2 focus:ring-red-500'
-                      : 'border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                      }`}
-                  >
-                    <option value="">Selecione...</option>
-                    {CATEGORIES.map(c => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
+                    hasError={!!formErrors.category}
+                  />
                   {formErrors.category && <p className="mt-1 text-xs text-red-600">{formErrors.category}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Localização *</label>
-                  <input
-                    type="text"
-                    placeholder="Ex: Estante A1"
+                  <CreatableSelect
                     value={form.location}
-                    onChange={(e) => updateField('location', e.target.value)}
+                    onChange={(val) => updateField('location', val)}
+                    options={locationOptions.map(loc => ({ value: loc, label: loc }))}
+                    placeholder="Ex: Estante A1"
                     disabled={submitting || submitSuccess}
-                    className={`w-full px-4 py-2.5 border rounded-lg outline-none transition-all text-sm disabled:opacity-60 disabled:cursor-not-allowed ${formErrors.location
-                      ? 'border-red-300 bg-red-50 focus:ring-2 focus:ring-red-500'
-                      : 'border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                      }`}
+                    hasError={!!formErrors.location}
                   />
                   {formErrors.location && <p className="mt-1 text-xs text-red-600">{formErrors.location}</p>}
                 </div>
@@ -674,12 +710,18 @@ const Inventory: React.FC = () => {
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">R$</span>
                     <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={form.unitValue}
-                      onChange={(e) => updateField('unitValue', e.target.value)}
+                      type="text"
+                      placeholder="0,00"
+                      value={form.unitValue ? Number(form.unitValue).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''}
+                      onChange={(e) => {
+                        const numericString = e.target.value.replace(/\D/g, '');
+                        if (!numericString) {
+                          updateField('unitValue', '');
+                          return;
+                        }
+                        const floatValue = parseInt(numericString, 10) / 100;
+                        updateField('unitValue', floatValue.toString());
+                      }}
                       disabled={submitting || submitSuccess || isEditing}
                       className={`w-full pl-10 pr-4 py-2.5 border rounded-lg outline-none transition-all text-sm disabled:opacity-60 disabled:cursor-not-allowed ${formErrors.unitValue
                         ? 'border-red-300 bg-red-50 focus:ring-2 focus:ring-red-500'
@@ -701,7 +743,7 @@ const Inventory: React.FC = () => {
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 bg-slate-50">
               <button
                 type="button"
-                onClick={closeModal}
+                onClick={requestCloseModal}
                 disabled={submitting}
                 className="px-5 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
               >
@@ -750,6 +792,59 @@ const Inventory: React.FC = () => {
         document.body
       )}
 
+      {/* ===== DISCARD CONFIRMATION MODAL ===== */}
+      {showDiscardConfirm && createPortal(
+        <div
+          className="flex items-center justify-center p-4"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100vh',
+            zIndex: 10000,
+            animation: 'fadeIn 0.2s ease-out',
+          }}
+        >
+          <div className="modal-backdrop" onClick={() => setShowDiscardConfirm(false)} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.4)' }} />
+
+          <div
+            className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden my-auto flex-shrink-0"
+            style={{ animation: 'slideUp 0.3s ease-out' }}
+          >
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">Descartar alterações?</h3>
+              <p className="text-slate-600 text-sm mb-6">
+                Você tem alterações não salvas. Se sair agora, todo o seu progresso neste produto será perdido.
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowDiscardConfirm(false)}
+                  className="px-5 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  Continuar editando
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDiscardConfirm(false);
+                    closeModal();
+                  }}
+                  className="px-5 py-2.5 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+                >
+                  Descartar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {/* ===== DELETE CONFIRMATION MODAL ===== */}
       {showDeleteConfirm && deletingProduct && createPortal(
         <div
@@ -759,13 +854,13 @@ const Inventory: React.FC = () => {
             position: 'fixed',
             top: 0,
             left: 0,
-            width: '100vw',
+            width: '100%',
             height: '100vh',
             zIndex: 9999,
             animation: 'fadeIn 0.2s ease-out',
           }}
         >
-          <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }} />
+          <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh' }} />
 
           <div
             ref={deleteModalRef}

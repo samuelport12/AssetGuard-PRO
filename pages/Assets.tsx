@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { dataService } from '../services/DataService';
-import { Asset, AssetStatus } from '../types';
+import { Asset, AssetPhoto, AssetStatus } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useDebounce } from '../hooks/useDebounce';
 import BarcodeField from '../components/BarcodeField';
-import { Search, Tag, Settings, Monitor, Trash2, X, Loader2, CheckCircle, AlertTriangle, Plus, Pencil, MapPin, Filter, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import CustomSelect from '../components/CustomSelect';
+import CreatableSelect from '../components/CreatableSelect';
+import { Search, Tag, Settings, Monitor, Trash2, X, Loader2, CheckCircle, AlertTriangle, Plus, Pencil, MapPin, Filter, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Upload, ImageIcon, Camera } from 'lucide-react';
 
 interface AssetForm {
   assetTag: string;
@@ -36,6 +38,13 @@ const STATUS_OPTIONS: { value: AssetStatus; label: string }[] = [
   { value: 'IN_USE', label: 'Em Uso' },
   { value: 'MAINTENANCE', label: 'Manutenção' },
   { value: 'DISPOSED', label: 'Baixado' },
+];
+
+const STATUS_SELECT_OPTIONS = [
+  { value: 'AVAILABLE', label: 'Disponível', icon: '✅' },
+  { value: 'IN_USE', label: 'Em Uso', icon: '🔧' },
+  { value: 'MAINTENANCE', label: 'Manutenção', icon: '⚙️' },
+  { value: 'DISPOSED', label: 'Baixado', icon: '📤' },
 ];
 
 const PAGE_SIZE = 20;
@@ -71,12 +80,29 @@ const Assets: React.FC = () => {
   const modalRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
 
+  // Discard confirmation state
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+
   // Delete confirmation state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingAsset, setDeletingAsset] = useState<Asset | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const deleteModalRef = useRef<HTMLDivElement>(null);
+
+  // Lightbox / Gallery state
+  const [galleryPhotos, setGalleryPhotos] = useState<AssetPhoto[]>([]);
+  const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
+  const [showGallery, setShowGallery] = useState(false);
+
+  // Photo upload state
+  const [pendingPhotos, setPendingPhotos] = useState<File[]>([]);
+  const [pendingPreviews, setPendingPreviews] = useState<string[]>([]);
+  const [existingPhotos, setExistingPhotos] = useState<AssetPhoto[]>([]);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const MAX_PHOTOS = 5;
+  const SERVER_BASE = 'http://localhost:3001';
 
   const loadAssets = useCallback(async (targetPage: number) => {
     try {
@@ -120,27 +146,59 @@ const Assets: React.FC = () => {
     }
   }, [showModal]);
 
-  // Close on Escape
+  // Close on Escape & Arrow Keys
   useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (showGallery) {
+        if (e.key === 'Escape') setShowGallery(false);
+        if (e.key === 'ArrowRight') setCurrentGalleryIndex((prev) => (prev + 1) % galleryPhotos.length);
+        if (e.key === 'ArrowLeft') setCurrentGalleryIndex((prev) => (prev - 1 + galleryPhotos.length) % galleryPhotos.length);
+        return;
+      }
       if (e.key === 'Escape') {
-        if (showDeleteConfirm && !deleting) {
+        if (showDiscardConfirm) {
+          setShowDiscardConfirm(false);
+        } else if (showDeleteConfirm && !deleting) {
           closeDeleteConfirm();
         } else if (showModal && !submitting) {
-          closeModal();
+          requestCloseModal();
         }
       }
     };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
-  }, [showModal, submitting, showDeleteConfirm, deleting]);
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [showModal, submitting, showDeleteConfirm, deleting, showDiscardConfirm, showGallery, galleryPhotos.length]);
 
   const getStatusBadge = (status: Asset['status']) => {
     switch (status) {
-      case 'IN_USE': return <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold border border-emerald-200">EM USO</span>;
-      case 'MAINTENANCE': return <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold border border-amber-200">MANUTENÇÃO</span>;
-      case 'DISPOSED': return <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-bold border border-slate-200">BAIXADO</span>;
-      case 'AVAILABLE': return <span className="px-2 py-1 bg-blue-100 text-blue-600 rounded-full text-xs font-bold border border-blue-200">DISPONÍVEL</span>;
+      case 'AVAILABLE':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-md">
+            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+            Disponível
+          </span>
+        );
+      case 'IN_USE':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-md">
+            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+            Em Uso
+          </span>
+        );
+      case 'MAINTENANCE':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-md">
+            <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+            Manutenção
+          </span>
+        );
+      case 'DISPOSED':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-md">
+            <span className="w-1.5 h-1.5 bg-slate-500 rounded-full"></span>
+            Baixado
+          </span>
+        );
       default: return null;
     }
   };
@@ -174,6 +232,9 @@ const Assets: React.FC = () => {
     setFormErrors({});
     setSubmitError(null);
     setSubmitSuccess(false);
+    setPendingPhotos([]);
+    setPendingPreviews([]);
+    setExistingPhotos([]);
     setShowModal(true);
   };
 
@@ -196,18 +257,53 @@ const Assets: React.FC = () => {
     setFormErrors({});
     setSubmitError(null);
     setSubmitSuccess(false);
+    setPendingPhotos([]);
+    setPendingPreviews([]);
+    setExistingPhotos(asset.photos || []);
     setShowModal(true);
+  };
+
+  const hasUnsavedChanges = (): boolean => {
+    if (submitSuccess) return false;
+    if (editingAsset) {
+      const dateStr = editingAsset.acquisitionDate.includes('T')
+        ? editingAsset.acquisitionDate.split('T')[0]
+        : editingAsset.acquisitionDate;
+      return (
+        form.assetTag !== editingAsset.assetTag ||
+        form.serialNumber !== editingAsset.serialNumber ||
+        form.name !== editingAsset.name ||
+        form.description !== editingAsset.description ||
+        form.acquisitionDate !== dateStr ||
+        form.purchaseValue !== String(editingAsset.purchaseValue) ||
+        form.location !== editingAsset.location ||
+        form.status !== editingAsset.status ||
+        form.usefulLifeYears !== String(editingAsset.usefulLifeYears) ||
+        pendingPhotos.length > 0
+      );
+    }
+    return Object.values(form).some(v => v !== '' && v !== 'AVAILABLE') || pendingPhotos.length > 0;
   };
 
   const closeModal = () => {
     if (submitting) return;
     setShowModal(false);
     setEditingAsset(null);
+    setShowDiscardConfirm(false);
+  };
+
+  const requestCloseModal = () => {
+    if (submitting) return;
+    if (hasUnsavedChanges()) {
+      setShowDiscardConfirm(true);
+    } else {
+      closeModal();
+    }
   };
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
-      closeModal();
+      requestCloseModal();
     }
   };
 
@@ -244,6 +340,72 @@ const Assets: React.FC = () => {
     return Object.keys(errors).length === 0;
   };
 
+  const totalPhotoCount = existingPhotos.length + pendingPhotos.length;
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []) as File[];
+    if (!files.length) return;
+
+    const remaining = MAX_PHOTOS - totalPhotoCount;
+    if (remaining <= 0) {
+      setSubmitError(`Limite de ${MAX_PHOTOS} fotos atingido.`);
+      return;
+    }
+
+    const validFiles: File[] = [];
+    for (const file of files.slice(0, remaining)) {
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        setSubmitError(`Formato não aceito: ${file.name}. Use JPEG, PNG ou WebP.`);
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setSubmitError(`Arquivo muito grande: ${file.name}. Máximo: 5MB.`);
+        return;
+      }
+      validFiles.push(file);
+    }
+
+    const newPreviews = validFiles.map(f => URL.createObjectURL(f));
+    setPendingPhotos(prev => [...prev, ...validFiles]);
+    setPendingPreviews(prev => [...prev, ...newPreviews]);
+    if (submitError) setSubmitError(null);
+
+    // Reset file input
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removePendingPhoto = (index: number) => {
+    URL.revokeObjectURL(pendingPreviews[index]);
+    setPendingPhotos(prev => prev.filter((_, i) => i !== index));
+    setPendingPreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeExistingPhoto = async (photo: AssetPhoto) => {
+    if (!editingAsset) return;
+    try {
+      await dataService.deleteAssetPhoto(editingAsset.id, photo.id);
+      setExistingPhotos(prev => prev.filter(p => p.id !== photo.id));
+    } catch (err: any) {
+      setSubmitError(err.message || 'Erro ao excluir foto');
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files) as File[];
+    if (!files.length) return;
+
+    // Simulate a file input change
+    const dataTransfer = new DataTransfer();
+    files.forEach(f => dataTransfer.items.add(f));
+    if (fileInputRef.current) {
+      fileInputRef.current.files = dataTransfer.files;
+      fileInputRef.current.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    // Manually handle since synthetic event may not fire
+    handleFileSelect({ target: { files: dataTransfer.files } } as any);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate() || !user) return;
@@ -256,7 +418,7 @@ const Assets: React.FC = () => {
       serialNumber: form.serialNumber.trim(),
       name: form.name.trim(),
       description: form.description.trim(),
-      acquisitionDate: form.acquisitionDate,
+      acquisitionDate: new Date(form.acquisitionDate).toISOString(),
       purchaseValue: Number(form.purchaseValue),
       location: form.location.trim(),
       status: form.status as AssetStatus,
@@ -264,11 +426,32 @@ const Assets: React.FC = () => {
     };
 
     try {
+      let savedAsset: Asset;
       if (editingAsset) {
-        await dataService.updateAsset(editingAsset.id, payload);
+        savedAsset = await dataService.updateAsset(editingAsset.id, payload);
       } else {
-        await dataService.addAsset(payload, user);
+        savedAsset = await dataService.addAsset(payload, user);
       }
+
+      // Upload pending photos
+      if (pendingPhotos.length > 0) {
+        setUploadingPhotos(true);
+        try {
+          await dataService.uploadAssetPhotos(savedAsset.id, pendingPhotos);
+        } catch (uploadErr: any) {
+          setSubmitError(uploadErr.message || 'Ativo salvo, mas erro ao enviar fotos');
+          setUploadingPhotos(false);
+          await loadAssets(page);
+          setSubmitting(false);
+          return;
+        }
+        setUploadingPhotos(false);
+      }
+
+      // Clean up preview URLs
+      pendingPreviews.forEach(url => URL.revokeObjectURL(url));
+      setPendingPhotos([]);
+      setPendingPreviews([]);
 
       setSubmitSuccess(true);
       await loadAssets(page);
@@ -355,18 +538,16 @@ const Assets: React.FC = () => {
             </div>
 
             {locationOptions.length > 0 && (
-              <div className="relative">
-                <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <select
+              <div style={{ minWidth: 200 }}>
+                <CustomSelect
                   value={selectedLocation}
-                  onChange={(e) => setSelectedLocation(e.target.value)}
-                  className="pl-8 pr-8 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none appearance-none cursor-pointer"
-                >
-                  <option value="">Todas Localizações</option>
-                  {locationOptions.map(loc => (
-                    <option key={loc} value={loc}>{loc}</option>
-                  ))}
-                </select>
+                  onChange={setSelectedLocation}
+                  options={[
+                    { value: '', label: 'Todas Localizações', icon: '📍' },
+                    ...locationOptions.map(loc => ({ value: loc, label: loc })),
+                  ]}
+                  placeholder="Todas Localizações"
+                />
               </div>
             )}
           </div>
@@ -434,9 +615,28 @@ const Assets: React.FC = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-slate-100 rounded text-slate-500">
-                            <Monitor size={16} />
-                          </div>
+                          {asset.photos && asset.photos.length > 0 ? (
+                            <div 
+                              className="w-10 h-10 rounded overflow-hidden flex-shrink-0 border border-slate-200 cursor-pointer hover:opacity-80 transition-opacity relative group"
+                              onClick={() => {
+                                setGalleryPhotos(asset.photos || []);
+                                setCurrentGalleryIndex(0);
+                                setShowGallery(true);
+                              }}
+                              title="Ver fotos"
+                            >
+                              <img src={`${SERVER_BASE}${asset.photos[0].url}`} alt={asset.name} className="w-full h-full object-cover" />
+                              {asset.photos.length > 1 && (
+                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <span className="text-white text-[10px] font-bold">+{asset.photos.length - 1}</span>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="p-2 bg-slate-100 rounded text-slate-500">
+                              <Monitor size={16} />
+                            </div>
+                          )}
                           <div>
                             <div className="font-medium text-slate-900">{asset.name}</div>
                             <div className="text-xs text-slate-500 max-w-[200px] truncate">{asset.description}</div>
@@ -521,17 +721,17 @@ const Assets: React.FC = () => {
             position: 'fixed',
             top: 0,
             left: 0,
-            width: '100vw',
+            width: '100%',
             height: '100vh',
             zIndex: 9999,
             animation: 'fadeIn 0.2s ease-out',
           }}
         >
-          <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }} />
+          <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh' }} />
 
           <div
             ref={modalRef}
-            className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex-shrink-0"
+            className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden flex-shrink-0"
             style={{ animation: 'slideUp 0.3s ease-out', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
           >
             {/* Header */}
@@ -550,7 +750,7 @@ const Assets: React.FC = () => {
               </div>
               <button
                 type="button"
-                onClick={closeModal}
+                onClick={requestCloseModal}
                 disabled={submitting}
                 className="p-1.5 rounded-lg hover:bg-white/20 transition-colors text-white disabled:opacity-50"
               >
@@ -645,38 +845,100 @@ const Assets: React.FC = () => {
                 {formErrors.description && <p className="mt-1 text-xs text-red-600">{formErrors.description}</p>}
               </div>
 
+              {/* Photos */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                  Fotos <span className="text-slate-400 font-normal">({totalPhotoCount}/{MAX_PHOTOS})</span>
+                </label>
+
+                {/* Existing photos grid */}
+                {existingPhotos.length > 0 && (
+                  <div className="flex gap-2 flex-wrap mb-3">
+                    {existingPhotos.map(photo => (
+                      <div key={photo.id} className="relative group w-20 h-20 rounded-lg overflow-hidden border border-slate-200">
+                        <img src={`${SERVER_BASE}${photo.url}`} alt={photo.filename} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeExistingPhoto(photo)}
+                          disabled={submitting || submitSuccess}
+                          className="absolute top-0.5 right-0.5 p-0.5 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Pending photos preview */}
+                {pendingPreviews.length > 0 && (
+                  <div className="flex gap-2 flex-wrap mb-3">
+                    {pendingPreviews.map((preview, i) => (
+                      <div key={i} className="relative group w-20 h-20 rounded-lg overflow-hidden border-2 border-dashed border-indigo-300 bg-indigo-50">
+                        <img src={preview} alt={`Preview ${i + 1}`} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removePendingPhoto(i)}
+                          disabled={submitting || submitSuccess}
+                          className="absolute top-0.5 right-0.5 p-0.5 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={12} />
+                        </button>
+                        <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] text-center py-0.5">Novo</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Upload area */}
+                {totalPhotoCount < MAX_PHOTOS && (
+                  <div
+                    onDrop={handleDrop}
+                    onDragOver={e => e.preventDefault()}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-3 px-4 py-3 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/50 transition-all"
+                  >
+                    <Camera size={20} className="text-slate-400" />
+                    <div className="text-sm text-slate-500">
+                      <span className="font-medium text-indigo-600">Clique para selecionar</span> ou arraste fotos aqui
+                      <div className="text-xs text-slate-400 mt-0.5">JPEG, PNG ou WebP. Max 5MB cada.</div>
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      multiple
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                  </div>
+                )}
+              </div>
+
               {/* Location + Status */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Localização *</label>
-                  <input
-                    type="text"
-                    placeholder="Ex: TI - Sala 1"
+                  <CreatableSelect
                     value={form.location}
-                    onChange={(e) => updateField('location', e.target.value)}
+                    onChange={(val) => updateField('location', val)}
+                    options={locationOptions.map(loc => ({ value: loc, label: loc }))}
+                    placeholder="Ex: TI - Sala 1"
                     disabled={submitting || submitSuccess}
-                    className={`w-full px-4 py-2.5 border rounded-lg outline-none transition-all text-sm disabled:opacity-60 disabled:cursor-not-allowed ${formErrors.location
-                      ? 'border-red-300 bg-red-50 focus:ring-2 focus:ring-red-500'
-                      : 'border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
-                      }`}
+                    hasError={!!formErrors.location}
                   />
                   {formErrors.location && <p className="mt-1 text-xs text-red-600">{formErrors.location}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Status *</label>
-                  <select
+                  <CustomSelect
                     value={form.status}
-                    onChange={(e) => updateField('status', e.target.value)}
+                    onChange={(val) => updateField('status', val)}
+                    options={STATUS_SELECT_OPTIONS}
+                    placeholder="Selecione..."
                     disabled={submitting || submitSuccess}
-                    className={`w-full px-4 py-2.5 border rounded-lg outline-none transition-all text-sm disabled:opacity-60 disabled:cursor-not-allowed appearance-none bg-white ${formErrors.status
-                      ? 'border-red-300 bg-red-50 focus:ring-2 focus:ring-red-500'
-                      : 'border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
-                      }`}
-                  >
-                    {STATUS_OPTIONS.map(s => (
-                      <option key={s.value} value={s.value}>{s.label}</option>
-                    ))}
-                  </select>
+                    hasError={!!formErrors.status}
+                  />
                   {formErrors.status && <p className="mt-1 text-xs text-red-600">{formErrors.status}</p>}
                 </div>
               </div>
@@ -702,12 +964,18 @@ const Assets: React.FC = () => {
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">R$</span>
                     <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={form.purchaseValue}
-                      onChange={(e) => updateField('purchaseValue', e.target.value)}
+                      type="text"
+                      placeholder="0,00"
+                      value={form.purchaseValue ? Number(form.purchaseValue).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''}
+                      onChange={(e) => {
+                        const numericString = e.target.value.replace(/\D/g, '');
+                        if (!numericString) {
+                          updateField('purchaseValue', '');
+                          return;
+                        }
+                        const floatValue = parseInt(numericString, 10) / 100;
+                        updateField('purchaseValue', floatValue.toString());
+                      }}
                       disabled={submitting || submitSuccess}
                       className={`w-full pl-10 pr-3 py-2.5 border rounded-lg outline-none transition-all text-sm disabled:opacity-60 disabled:cursor-not-allowed ${formErrors.purchaseValue
                         ? 'border-red-300 bg-red-50 focus:ring-2 focus:ring-red-500'
@@ -741,7 +1009,7 @@ const Assets: React.FC = () => {
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 bg-slate-50">
               <button
                 type="button"
-                onClick={closeModal}
+                onClick={requestCloseModal}
                 disabled={submitting}
                 className="px-5 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
               >
@@ -756,10 +1024,10 @@ const Assets: React.FC = () => {
                   : 'bg-indigo-600 hover:bg-indigo-700'
                   }`}
               >
-                {submitting ? (
+                {submitting || uploadingPhotos ? (
                   <>
                     <Loader2 size={16} className="animate-spin" />
-                    {isEditing ? 'Salvando...' : 'Registrando...'}
+                    {uploadingPhotos ? 'Enviando fotos...' : isEditing ? 'Salvando...' : 'Registrando...'}
                   </>
                 ) : submitSuccess ? (
                   <>
@@ -799,13 +1067,13 @@ const Assets: React.FC = () => {
             position: 'fixed',
             top: 0,
             left: 0,
-            width: '100vw',
+            width: '100%',
             height: '100vh',
             zIndex: 9999,
             animation: 'fadeIn 0.2s ease-out',
           }}
         >
-          <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }} />
+          <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh' }} />
 
           <div
             ref={deleteModalRef}
@@ -906,6 +1174,119 @@ const Assets: React.FC = () => {
               to { opacity: 1; transform: translateY(0) scale(1); }
             }
           `}</style>
+        </div>,
+        document.body
+      )}
+
+      {/* ===== DISCARD CONFIRMATION MODAL ===== */}
+      {showDiscardConfirm && createPortal(
+        <div
+          className="flex items-center justify-center p-4"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100vh',
+            zIndex: 10000,
+            animation: 'fadeIn 0.2s ease-out',
+          }}
+        >
+          <div className="modal-backdrop" onClick={() => setShowDiscardConfirm(false)} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.4)' }} />
+
+          <div
+            className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden my-auto flex-shrink-0"
+            style={{ animation: 'slideUp 0.3s ease-out' }}
+          >
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">Descartar alterações?</h3>
+              <p className="text-slate-600 text-sm mb-6">
+                Você tem alterações não salvas. Se sair agora, todo o seu progresso neste ativo será perdido.
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowDiscardConfirm(false)}
+                  className="px-5 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  Continuar editando
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDiscardConfirm(false);
+                    closeModal();
+                  }}
+                  className="px-5 py-2.5 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+                >
+                  Descartar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ===== LIGHTBOX / GALLERY MODAL ===== */}
+      {showGallery && createPortal(
+        <div 
+          className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/90 p-4"
+          onClick={() => setShowGallery(false)}
+          style={{ animation: 'fadeIn 0.2s ease-out' }}
+        >
+          {/* Close button */}
+          <button 
+            className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-[10001]"
+            onClick={() => setShowGallery(false)}
+            title="Fechar"
+          >
+            <X size={24} />
+          </button>
+          
+          {/* Main Photo */}
+          <div 
+            className="relative max-w-5xl max-h-[90vh] w-full h-full flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {galleryPhotos.length > 1 && (
+              <button 
+                type="button"
+                className="absolute left-4 p-3 bg-black/50 hover:bg-black/80 text-white rounded-full transition-colors z-[10001]"
+                onClick={(e) => { e.stopPropagation(); setCurrentGalleryIndex((prev) => (prev - 1 + galleryPhotos.length) % galleryPhotos.length); }}
+                title="Foto anterior"
+              >
+                <ChevronLeft size={32} />
+              </button>
+            )}
+
+            <img 
+              src={`${SERVER_BASE}${galleryPhotos[currentGalleryIndex].url}`} 
+              alt="Asset" 
+              className="max-w-full max-h-full object-contain rounded drop-shadow-2xl" 
+            />
+
+            {galleryPhotos.length > 1 && (
+              <button 
+                type="button"
+                className="absolute right-4 p-3 bg-black/50 hover:bg-black/80 text-white rounded-full transition-colors z-[10001]"
+                onClick={(e) => { e.stopPropagation(); setCurrentGalleryIndex((prev) => (prev + 1) % galleryPhotos.length); }}
+                title="Próxima foto"
+              >
+                <ChevronRight size={32} />
+              </button>
+            )}
+          </div>
+          
+          {/* Indicator */}
+          {galleryPhotos.length > 1 && (
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-1.5 rounded-full text-sm font-semibold tracking-widest z-[10001]">
+              {currentGalleryIndex + 1} / {galleryPhotos.length}
+            </div>
+          )}
         </div>,
         document.body
       )}

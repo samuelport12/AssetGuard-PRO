@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { dataService } from '../services/DataService';
-import { FileText, FileSpreadsheet, Loader2, Calendar, TrendingDown, Search, BarChart3, Package, Building2, ChevronDown, ClipboardList } from 'lucide-react';
+import { FileText, FileSpreadsheet, Loader2, Calendar, TrendingDown, TrendingUp, Search, BarChart3, Package, Building2, ChevronDown, ClipboardList } from 'lucide-react';
 import { ranking } from '../theme/colors';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -12,12 +13,19 @@ interface DepartmentRow {
     totalEntradas: number;
     totalSaidas: number;
     totalExitCost: number;
+    totalEntryCost: number;
 }
 
 interface TopConsumedRow {
     productId: string;
     productName: string;
     totalSaidas: number;
+}
+
+interface TopEntradaRow {
+    productId: string;
+    productName: string;
+    totalEntradas: number;
 }
 
 interface MovementRow {
@@ -64,10 +72,12 @@ const Reports: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [byDepartment, setByDepartment] = useState<DepartmentRow[]>([]);
     const [topConsumed, setTopConsumed] = useState<TopConsumedRow[]>([]);
+    const [topEntradas, setTopEntradas] = useState<TopEntradaRow[]>([]);
     const [movements, setMovements] = useState<MovementRow[]>([]);
     const [exportingPdf, setExportingPdf] = useState(false);
     const [exportingExcel, setExportingExcel] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
+    const [movementTypeFilter, setMovementTypeFilter] = useState<'SAIDA' | 'ENTRADA'>('SAIDA');
 
     // Department filter state
     const [departments, setDepartments] = useState<DepartmentOption[]>([]);
@@ -76,17 +86,35 @@ const Reports: React.FC = () => {
     const [loadingDepts, setLoadingDepts] = useState(true);
     const [deptSearchQuery, setDeptSearchQuery] = useState('');
     const deptDropdownRef = useRef<HTMLDivElement>(null);
+    const deptTriggerRef = useRef<HTMLButtonElement>(null);
+    const [deptDropdownPos, setDeptDropdownPos] = useState({ top: 0, left: 0, width: 0 });
 
     // Close dropdown on outside click
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
-            if (deptDropdownRef.current && !deptDropdownRef.current.contains(e.target as Node)) {
+            const target = e.target as Node;
+            const triggerClicked = deptTriggerRef.current?.contains(target);
+            const dropdownClicked = deptDropdownRef.current?.contains(target);
+            if (!triggerClicked && !dropdownClicked) {
                 setDeptFilterOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    const openDeptDropdown = () => {
+        if (deptTriggerRef.current) {
+            const rect = deptTriggerRef.current.getBoundingClientRect();
+            setDeptDropdownPos({
+                top: rect.bottom + window.scrollY + 4,
+                left: rect.left + window.scrollX,
+                width: rect.width,
+            });
+        }
+        setDeptFilterOpen(prev => !prev);
+        setDeptSearchQuery('');
+    };
 
     // Load departments on mount
     useEffect(() => {
@@ -109,6 +137,7 @@ const Reports: React.FC = () => {
             const data = await dataService.getConsumptionReport(startDate, endDate, selectedDeptIds.length > 0 ? selectedDeptIds : undefined);
             setByDepartment(data.byDepartment);
             setTopConsumed(data.topConsumed);
+            setTopEntradas(data.topEntradas || []);
             setMovements(data.movements);
             setHasSearched(true);
         } catch (err: any) {
@@ -305,6 +334,9 @@ const Reports: React.FC = () => {
     const totalEntradas = byDepartment.reduce((acc, r) => acc + r.totalEntradas, 0);
     const totalSaidas = byDepartment.reduce((acc, r) => acc + r.totalSaidas, 0);
     const totalExitCost = byDepartment.reduce((acc, r) => acc + r.totalExitCost, 0);
+    const totalEntryCost = byDepartment.reduce((acc, r) => acc + (r.totalEntryCost ?? 0), 0);
+
+    const isEntrada = movementTypeFilter === 'ENTRADA';
 
     function formatCurrency(value: number): string {
         return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -346,7 +378,7 @@ const Reports: React.FC = () => {
             </div>
 
             {/* Filters */}
-            <div className="glass-card animate-in p-4 space-y-4" style={{ animationDelay: '60ms' }}>
+            <div className="glass-card animate-in p-4 space-y-4" style={{ animationDelay: '60ms', overflow: 'visible' }}>
                 <div className="flex flex-wrap items-end gap-4">
                     <div>
                         <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
@@ -372,6 +404,38 @@ const Reports: React.FC = () => {
                             className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                         />
                     </div>
+
+                    {/* Movement type toggle */}
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                            Tipo de Movimentação
+                        </label>
+                        <div className="flex rounded-lg border border-slate-300 overflow-hidden text-sm font-semibold">
+                            <button
+                                type="button"
+                                onClick={() => setMovementTypeFilter('SAIDA')}
+                                className={`flex items-center gap-1.5 px-4 py-2 transition-colors ${!isEntrada
+                                        ? 'bg-red-600 text-white'
+                                        : 'bg-white text-slate-600 hover:bg-slate-50'
+                                    }`}
+                            >
+                                <TrendingDown size={14} />
+                                Saídas
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setMovementTypeFilter('ENTRADA')}
+                                className={`flex items-center gap-1.5 px-4 py-2 border-l border-slate-300 transition-colors ${isEntrada
+                                        ? 'bg-emerald-600 text-white'
+                                        : 'bg-white text-slate-600 hover:bg-slate-50'
+                                    }`}
+                            >
+                                <TrendingUp size={14} />
+                                Entradas
+                            </button>
+                        </div>
+                    </div>
+
                     <button
                         onClick={loadReport}
                         disabled={loading}
@@ -384,24 +448,33 @@ const Reports: React.FC = () => {
 
                 {/* Department multi-select dropdown */}
                 {!loadingDepts && departments.length > 0 && (
-                    <div ref={deptDropdownRef} style={{ position: 'relative', width: '100%', maxWidth: 320 }}>
+                    <div style={{ position: 'relative', width: '100%', maxWidth: 320 }}>
                         <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
                             <Building2 size={12} className="inline mr-1" />
                             Setores
                         </label>
                         <button
+                            ref={deptTriggerRef}
                             type="button"
-                            onClick={() => { setDeptFilterOpen(prev => !prev); setDeptSearchQuery(''); }}
+                            onClick={openDeptDropdown}
                             className="flex items-center justify-between w-full px-3 py-2 border border-slate-300 rounded-lg text-sm hover:border-blue-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white outline-none"
                         >
                             <span className="text-slate-700 truncate">{deptFilterLabel}</span>
                             <ChevronDown size={16} className={`text-slate-400 transition-transform duration-200 flex-shrink-0 ml-2 ${deptFilterOpen ? 'rotate-180' : ''}`} />
                         </button>
 
-                        {deptFilterOpen && (
+                        {deptFilterOpen && ReactDOM.createPortal(
                             <div
-                                className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden"
-                                style={{ animation: 'fadeInDown 0.15s ease-out' }}
+                                ref={deptDropdownRef}
+                                style={{
+                                    position: 'fixed',
+                                    top: deptDropdownPos.top,
+                                    left: deptDropdownPos.left,
+                                    width: deptDropdownPos.width,
+                                    zIndex: 9999,
+                                    animation: 'fadeInDown 0.15s ease-out',
+                                }}
+                                className="bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden"
                             >
                                 {/* Search */}
                                 <div className="p-2 border-b border-slate-100">
@@ -445,8 +518,7 @@ const Reports: React.FC = () => {
                                             return (
                                                 <label
                                                     key={dept.id}
-                                                    className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors text-sm border-b border-slate-50 last:border-b-0 ${isSelected ? 'bg-blue-50/60' : 'hover:bg-slate-50'
-                                                        }`}
+                                                    className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors text-sm border-b border-slate-50 last:border-b-0 ${isSelected ? 'bg-blue-50/60' : 'hover:bg-slate-50'}`}
                                                 >
                                                     <input
                                                         type="checkbox"
@@ -475,7 +547,7 @@ const Reports: React.FC = () => {
                                     </div>
                                 )}
                             </div>
-                        )}
+                            , document.body)}
                     </div>
                 )}
             </div>
@@ -498,21 +570,30 @@ const Reports: React.FC = () => {
             {/* Summary Cards */}
             {hasSearched && !loading && !error && movements.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {/* Card 1: Total Entradas ou Saídas */}
                     <div className="glass-card animate-in p-5" style={{ animationDelay: '180ms' }}>
                         <div className="flex items-center gap-3">
-                            <div className="p-2.5 bg-red-50 rounded-lg">
-                                <TrendingDown size={20} className="text-red-600" />
+                            <div className={`p-2.5 rounded-lg ${isEntrada ? 'bg-emerald-50' : 'bg-red-50'}`}>
+                                {isEntrada
+                                    ? <TrendingUp size={20} className="text-emerald-600" />
+                                    : <TrendingDown size={20} className="text-red-600" />}
                             </div>
                             <div>
-                                <p className="text-xs font-semibold text-slate-500 uppercase">Total Saídas</p>
-                                <p className="text-2xl font-bold text-slate-800">{totalSaidas.toLocaleString('pt-BR')}</p>
+                                <p className="text-xs font-semibold text-slate-500 uppercase">
+                                    {isEntrada ? 'Total Entradas' : 'Total Saídas'}
+                                </p>
+                                <p className="text-2xl font-bold text-slate-800">
+                                    {(isEntrada ? totalEntradas : totalSaidas).toLocaleString('pt-BR')}
+                                </p>
                             </div>
                         </div>
                     </div>
+
+                    {/* Card 2: Movimentações (sempre igual) */}
                     <div className="glass-card animate-in p-5" style={{ animationDelay: '220ms' }}>
                         <div className="flex items-center gap-3">
-                            <div className="p-2.5 bg-emerald-50 rounded-lg">
-                                <Package size={20} className="text-emerald-600" />
+                            <div className="p-2.5 bg-blue-50 rounded-lg">
+                                <Package size={20} className="text-blue-600" />
                             </div>
                             <div>
                                 <p className="text-xs font-semibold text-slate-500 uppercase">Movimentações</p>
@@ -520,14 +601,20 @@ const Reports: React.FC = () => {
                             </div>
                         </div>
                     </div>
+
+                    {/* Card 3: Custo Entradas ou Custo Saídas */}
                     <div className="glass-card animate-in p-5" style={{ animationDelay: '260ms' }}>
                         <div className="flex items-center gap-3">
                             <div className="p-2.5 bg-amber-50 rounded-lg">
                                 <BarChart3 size={20} className="text-amber-600" />
                             </div>
                             <div>
-                                <p className="text-xs font-semibold text-slate-500 uppercase">Custo Saídas</p>
-                                <p className="text-2xl font-bold text-slate-800">{formatCurrency(totalExitCost)}</p>
+                                <p className="text-xs font-semibold text-slate-500 uppercase">
+                                    {isEntrada ? 'Custo Entradas' : 'Custo Saídas'}
+                                </p>
+                                <p className="text-2xl font-bold text-slate-800">
+                                    {formatCurrency(isEntrada ? totalEntryCost : totalExitCost)}
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -554,7 +641,7 @@ const Reports: React.FC = () => {
                 <div className="glass-card animate-in overflow-hidden" style={{ animationDelay: '300ms' }}>
                     <div className="px-6 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.04)', background: 'rgba(0,0,0,0.015)' }}>
                         <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
-                            Consumo por Setor
+                            {isEntrada ? 'Entradas por Setor' : 'Consumo por Setor'}
                         </h3>
                         <p className="text-xs text-slate-500 mt-0.5">
                             Período: {formatDate(startDate)} a {formatDate(endDate)}
@@ -571,24 +658,29 @@ const Reports: React.FC = () => {
                                 <thead>
                                     <tr style={{ background: 'rgba(0,0,0,0.015)' }} className="text-xs uppercase font-semibold">
                                         <th className="px-6 py-4">Setor</th>
-                                        <th className="px-6 py-4 text-center">Saídas</th>
-                                        <th className="px-6 py-4 text-right">Custo Saídas</th>
+                                        <th className="px-6 py-4 text-center">{isEntrada ? 'Entradas' : 'Saídas'}</th>
+                                        <th className="px-6 py-4 text-right">{isEntrada ? 'Custo Entradas' : 'Custo Saídas'}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-200">
                                     {byDepartment.map((row) => {
+                                        const qty = isEntrada ? row.totalEntradas : row.totalSaidas;
+                                        const cost = isEntrada ? (row.totalEntryCost ?? 0) : row.totalExitCost;
                                         return (
                                             <tr key={row.departmentId} className="table-row-hover">
                                                 <td className="px-6 py-4">
                                                     <span className="font-medium text-slate-900">{row.departmentName}</span>
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200">
-                                                        {row.totalSaidas}
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${isEntrada
+                                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                            : 'bg-red-50 text-red-700 border-red-200'
+                                                        }`}>
+                                                        {qty}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
-                                                    <span className="font-medium text-sm text-slate-700">{formatCurrency(row.totalExitCost)}</span>
+                                                    <span className="font-medium text-sm text-slate-700">{formatCurrency(cost)}</span>
                                                 </td>
                                             </tr>
                                         );
@@ -597,8 +689,12 @@ const Reports: React.FC = () => {
                                 <tfoot>
                                     <tr className="bg-slate-100 font-bold text-slate-700">
                                         <td className="px-6 py-3 text-sm">TOTAL</td>
-                                        <td className="px-6 py-3 text-center text-sm text-red-700">{totalSaidas}</td>
-                                        <td className="px-6 py-3 text-right text-sm">{formatCurrency(totalExitCost)}</td>
+                                        <td className={`px-6 py-3 text-center text-sm ${isEntrada ? 'text-emerald-700' : 'text-red-700'}`}>
+                                            {isEntrada ? totalEntradas : totalSaidas}
+                                        </td>
+                                        <td className="px-6 py-3 text-right text-sm">
+                                            {formatCurrency(isEntrada ? totalEntryCost : totalExitCost)}
+                                        </td>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -607,12 +703,12 @@ const Reports: React.FC = () => {
                 </div>
             )}
 
-            {/* Top Consumed */}
-            {hasSearched && !loading && !error && topConsumed.length > 0 && (
+            {/* Top 10 */}
+            {hasSearched && !loading && !error && (isEntrada ? topEntradas.length > 0 : topConsumed.length > 0) && (
                 <div className="glass-card animate-in overflow-hidden" style={{ animationDelay: '360ms' }}>
                     <div className="px-6 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.04)', background: 'rgba(0,0,0,0.015)' }}>
                         <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
-                            Top 10 Itens Mais Consumidos
+                            {isEntrada ? 'Top 10 Itens Mais Recebidos' : 'Top 10 Itens Mais Consumidos'}
                         </h3>
                     </div>
                     <div className="overflow-x-auto">
@@ -621,39 +717,44 @@ const Reports: React.FC = () => {
                                 <tr style={{ background: 'rgba(0,0,0,0.015)' }} className="text-xs uppercase font-semibold">
                                     <th className="px-6 py-4 w-12 text-center">#</th>
                                     <th className="px-6 py-4">Produto</th>
-                                    <th className="px-6 py-4 text-center">Total Saídas</th>
+                                    <th className="px-6 py-4 text-center">{isEntrada ? 'Total Entradas' : 'Total Saídas'}</th>
                                     <th className="px-6 py-4" style={{ width: '40%' }}>Proporção</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200">
-                                {topConsumed.map((row, i) => {
-                                    const maxSaidas = topConsumed[0]?.totalSaidas || 1;
-                                    const pct = (row.totalSaidas / maxSaidas) * 100;
+                                {(isEntrada ? topEntradas : topConsumed).map((row, i) => {
+                                    const qty = isEntrada
+                                        ? (row as TopEntradaRow).totalEntradas
+                                        : (row as TopConsumedRow).totalSaidas;
+                                    const maxQty = isEntrada
+                                        ? (topEntradas[0]?.totalEntradas || 1)
+                                        : (topConsumed[0]?.totalSaidas || 1);
+                                    const pct = (qty / maxQty) * 100;
+                                    const barColor = isEntrada
+                                        ? (i === 0 ? '#059669' : i < 3 ? '#10b981' : '#6ee7b7')
+                                        : (i === 0 ? ranking.top1 : i < 3 ? ranking.top2_3 : ranking.default);
                                     return (
                                         <tr key={row.productId} className="table-row-hover">
                                             <td className="px-6 py-3 text-center">
                                                 <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${i === 0 ? 'bg-amber-100 text-amber-700 border border-amber-300' :
-                                                    i === 1 ? 'bg-slate-100 text-slate-600 border border-slate-300' :
-                                                        i === 2 ? 'bg-orange-50 text-orange-600 border border-orange-200' :
-                                                            'bg-slate-50 text-slate-500'
+                                                        i === 1 ? 'bg-slate-100 text-slate-600 border border-slate-300' :
+                                                            i === 2 ? 'bg-orange-50 text-orange-600 border border-orange-200' :
+                                                                'bg-slate-50 text-slate-500'
                                                     }`}>
                                                     {i + 1}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-3 font-medium text-slate-900 text-sm">{row.productName}</td>
                                             <td className="px-6 py-3 text-center">
-                                                <span className="font-bold text-red-600 text-sm">{row.totalSaidas}</span>
+                                                <span className={`font-bold text-sm ${isEntrada ? 'text-emerald-600' : 'text-red-600'}`}>
+                                                    {qty}
+                                                </span>
                                             </td>
                                             <td className="px-6 py-3">
                                                 <div className="w-full bg-slate-100 rounded-full h-2.5">
                                                     <div
                                                         className="h-2.5 rounded-full transition-all duration-500"
-                                                        style={{
-                                                            width: `${pct}%`,
-                                                            background: i === 0 ? ranking.top1 :
-                                                                i < 3 ? ranking.top2_3 :
-                                                                    ranking.default,
-                                                        }}
+                                                        style={{ width: `${pct}%`, background: barColor }}
                                                     />
                                                 </div>
                                             </td>

@@ -123,7 +123,7 @@ const BarcodeField = React.forwardRef<HTMLInputElement, BarcodeFieldProps>(({
     return (
         <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">{label}</label>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
                 <input
                     ref={ref}
                     type="text"
@@ -131,7 +131,7 @@ const BarcodeField = React.forwardRef<HTMLInputElement, BarcodeFieldProps>(({
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
                     disabled={disabled}
-                    className={`flex-1 px-4 py-2.5 border rounded-lg outline-none transition-all text-sm font-mono disabled:opacity-60 disabled:cursor-not-allowed ${error
+                    className={`min-w-0 flex-1 px-3 py-2.5 border rounded-lg outline-none transition-all text-sm font-mono disabled:opacity-60 disabled:cursor-not-allowed ${error
                         ? 'border-red-300 bg-red-50 focus:ring-2 focus:ring-red-500'
                         : 'border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                         }`}
@@ -141,7 +141,7 @@ const BarcodeField = React.forwardRef<HTMLInputElement, BarcodeFieldProps>(({
                     onClick={handleGenerate}
                     disabled={disabled}
                     title="Gerar código automaticamente"
-                    className="flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                    className="flex-shrink-0 flex items-center gap-1 px-2.5 py-2.5 text-xs font-semibold text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                     style={{
                         background: gradients.primaryBtn,
                         whiteSpace: 'nowrap',
@@ -156,7 +156,7 @@ const BarcodeField = React.forwardRef<HTMLInputElement, BarcodeFieldProps>(({
                         onClick={handlePrint}
                         disabled={disabled}
                         title="Imprimir etiqueta"
-                        className="p-2.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all border border-slate-200 disabled:opacity-50"
+                        className="flex-shrink-0 p-2.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all border border-slate-200 disabled:opacity-50"
                     >
                         <Printer size={16} />
                     </button>

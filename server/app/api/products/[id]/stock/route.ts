@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
+import { validateBody } from '@/lib/validate';
+import { stockMovementSchema } from '@/lib/validators';
 
 export async function PUT(
     request: NextRequest,
@@ -12,32 +14,12 @@ export async function PUT(
     }
 
     try {
-        const body = await request.json();
-        console.log('[stock/route] Payload recebido:', JSON.stringify(body));
-        const { type, quantity, unitCost, reason, departmentId, movementDate } = body;
+        const validation = await validateBody(request, stockMovementSchema);
+        if (!validation.success) return validation.response;
+        
+        console.log('[stock/route] Payload recebido:', JSON.stringify(validation.data));
+        const { type, quantity, unitCost, reason, departmentId, movementDate } = validation.data;
         const { id } = params;
-
-        // --- Validations ---
-        if (!type || !['ENTRADA', 'SAIDA'].includes(type)) {
-            return NextResponse.json(
-                { error: 'Tipo inválido. Use ENTRADA ou SAIDA.' },
-                { status: 400 }
-            );
-        }
-
-        if (!quantity || quantity <= 0) {
-            return NextResponse.json(
-                { error: 'Quantidade deve ser maior que zero.' },
-                { status: 400 }
-            );
-        }
-
-        if (type === 'ENTRADA' && (!unitCost || unitCost <= 0)) {
-            return NextResponse.json(
-                { error: 'Custo unitário deve ser maior que zero para ENTRADA.' },
-                { status: 400 }
-            );
-        }
 
         let movementDateObj: Date | undefined;
         if (movementDate) {
@@ -78,14 +60,14 @@ export async function PUT(
         if (type === 'ENTRADA') {
             // Weighted moving average cost
             if (product.quantity === 0) {
-                newUnitValue = unitCost;
+                newUnitValue = unitCost!;
             } else {
                 newUnitValue =
-                    (product.quantity * product.unitValue + quantity * unitCost) /
+                    (product.quantity * product.unitValue + quantity * unitCost!) /
                     (product.quantity + quantity);
             }
             newQuantity = product.quantity + quantity;
-            movementUnitCost = unitCost;
+            movementUnitCost = unitCost!;
         } else {
             // SAIDA — auto-fill unitCost with current avg cost, do NOT recalculate
             newQuantity = product.quantity - quantity;

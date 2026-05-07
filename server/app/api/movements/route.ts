@@ -111,6 +111,8 @@ export async function GET(request: NextRequest) {
                 userId: m.userId,
                 userName: m.userName,
                 createdAt: m.createdAt.toISOString(),
+                reversedAt: m.reversedAt ? m.reversedAt.toISOString() : null,
+                reversalOfId: m.reversalOfId ?? null,
             })),
             total,
             page,

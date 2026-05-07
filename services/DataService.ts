@@ -1,4 +1,4 @@
-import { Asset, AuditLog, Department, Product, User, DashboardStats, StockMovement, MovementsSummary } from "../types";
+import { Asset, AssetPhoto, AuditLog, Department, Product, User, DashboardStats, StockMovement, MovementsSummary } from "../types";
 
 const API_BASE = '/api';
 
@@ -35,7 +35,7 @@ class DataService {
     page: number;
     totalPages: number;
     limit: number;
-    filterOptions: { categories: string[] };
+    filterOptions: { categories: string[]; locations: string[] };
   }> {
     const qs = new URLSearchParams();
     if (params?.page) qs.set('page', String(params.page));
@@ -171,6 +171,27 @@ class DataService {
     await handleResponse(response);
   }
 
+  async uploadAssetPhotos(assetId: string, files: File[]): Promise<AssetPhoto[]> {
+    const formData = new FormData();
+    files.forEach(file => formData.append('photos', file));
+
+    const token = localStorage.getItem('assetguard_token');
+    const response = await fetch(`${API_BASE}/assets/${assetId}/photos`, {
+      method: 'POST',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      body: formData,
+    });
+    return handleResponse<AssetPhoto[]>(response);
+  }
+
+  async deleteAssetPhoto(assetId: string, photoId: string): Promise<void> {
+    const response = await fetch(`${API_BASE}/assets/${assetId}/photos/${photoId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    await handleResponse(response);
+  }
+
   // --- Logs & Stats ---
 
   async getLogs(params?: {
@@ -257,6 +278,15 @@ class DataService {
     return handleResponse<User>(response);
   }
 
+  async updateUserPassword(id: string, password: string): Promise<{ success: boolean; message: string }> {
+    const response = await fetch(`${API_BASE}/users/${id}/password`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ password }),
+    });
+    return handleResponse(response);
+  }
+
   // --- Departments ---
 
   async getDepartments(): Promise<Department[]> {
@@ -290,6 +320,16 @@ class DataService {
       headers: getAuthHeaders(),
     });
     return handleResponse<Department>(response);
+  }
+
+  // --- Movement Reversal ---
+
+  async reverseMovement(movementId: string): Promise<{ product: Product; movement: StockMovement }> {
+    const response = await fetch(`${API_BASE}/movements/${movementId}/reverse`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
   }
 
   // --- Stock Movements ---
@@ -333,8 +373,9 @@ class DataService {
   // --- Reports ---
 
   async getConsumptionReport(startDate?: string, endDate?: string, departmentIds?: string[]): Promise<{
-    byDepartment: { departmentId: string; departmentName: string; totalEntradas: number; totalSaidas: number; totalExitCost: number }[];
+    byDepartment: { departmentId: string; departmentName: string; totalEntradas: number; totalSaidas: number; totalExitCost: number; totalEntryCost: number }[];
     topConsumed: { productId: string; productName: string; totalSaidas: number }[];
+    topEntradas: { productId: string; productName: string; totalEntradas: number }[];
     movements: {
       date: string;
       productName: string;

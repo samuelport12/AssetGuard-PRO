@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
+import { validateBody } from '@/lib/validate';
+import { updateUserSchema } from '@/lib/validators';
 
 export async function PUT(
     request: NextRequest,
@@ -16,15 +18,10 @@ export async function PUT(
 
     try {
         const { id } = params;
-        const body = await request.json();
-        const { fullName, username, role } = body;
-
-        if (!fullName || !username) {
-            return NextResponse.json(
-                { error: 'Nome completo e username são obrigatórios' },
-                { status: 400 }
-            );
-        }
+        const validation = await validateBody(request, updateUserSchema);
+        if (!validation.success) return validation.response;
+        
+        const { fullName, username, role } = validation.data;
 
         const targetUser = await prisma.user.findUnique({ where: { id } });
         if (!targetUser) {

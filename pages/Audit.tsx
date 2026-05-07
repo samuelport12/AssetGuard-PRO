@@ -303,8 +303,8 @@ const Audit: React.FC = () => {
                     key={p}
                     onClick={() => goToPage(p)}
                     className={`min-w-[36px] h-9 rounded-lg text-sm font-medium transition-all ${p === page
-                        ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20'
-                        : 'text-slate-600 hover:bg-slate-200'
+                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20'
+                      : 'text-slate-600 hover:bg-slate-200'
                       }`}
                   >
                     {p}
